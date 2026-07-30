@@ -17,9 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install -g pnpm
-      - run: pnpm install
-      - run: pnpm run build
+      - run: npm install
+      - run: npm run build
       - uses: actions/configure-pages@v5
         with:
           enablement: true
