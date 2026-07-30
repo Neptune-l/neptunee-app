@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.vite/
+*.bat
+_fix_*.py
