@@ -6,7 +6,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import TaskEdit from '../subpages/TaskEdit'
 
 export default function HomePage({ openSubpage }) {
-  const { loaded, habits, tasks, bills, focusDiary, totalScore, viewDate, setViewDate, updateTask, checkHabit, getHabitStatus } = useApp()
+  const { loaded, habits, tasks, bills, focusDiary, totalScore, viewDate, setViewDate, updateTask, checkHabit, uncheckHabit, getHabitStatus } = useApp()
   const [showCalendar, setShowCalendar] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null)
   const [editingTask, setEditingTask] = useState(null)
@@ -53,7 +53,7 @@ export default function HomePage({ openSubpage }) {
     if (!task.completed) {
       task.completed = true; task.completeTime = Date.now(); await updateTask(task); showGlobalToast('任务完成！')
       if (task.linkedHabitId) { try { const r = await checkHabit(task.linkedHabitId, viewDate); if (r && !r.already) showGlobalToast('任务完成，习惯自动打卡 +' + r.delta + '分') } catch (e) { showGlobalToast('打卡出错: ' + e.message) } }
-    } else { setConfirmAction({ message: '取消完成将同步取消对应习惯打卡，是否继续？', onConfirm: async () => { task.completed = false; task.completeTime = null; await updateTask(task); showGlobalToast('已取消完成'); setConfirmAction(null) }, onCancel: () => setConfirmAction(null) }) }
+    } else { setConfirmAction({ message: '取消完成将同步取消对应习惯打卡，是否继续？', onConfirm: async () => { task.completed = false; task.completeTime = null; await updateTask(task); if (task.linkedHabitId) { await uncheckHabit(task.linkedHabitId, viewDate) }; showGlobalToast('已取消完成'); setConfirmAction(null) }, onCancel: () => setConfirmAction(null) }) }
   }
 
   const handleHabitCheck = async (habit) => {

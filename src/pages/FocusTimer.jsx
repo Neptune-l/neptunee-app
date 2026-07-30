@@ -61,6 +61,7 @@ export default function FocusTimer() {
         const extra = Math.floor((Date.now() - startTimeRef.current) / 1000)
         const total = elapsedRef.current + extra
         setElapsed(total)
+        elapsedRef.current = total
         const target = timerMode === 'regular' ? (selectedTask.timerTarget || 0) * 60 : (pomoPhase === 'work' ? POMO_WORK : pomoPhase === 'longBreak' ? POMO_LONG : POMO_SHORT)
         if (target > 0 && total >= target) {
           clearInterval(timerRef.current)

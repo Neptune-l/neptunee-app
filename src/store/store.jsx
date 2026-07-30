@@ -416,11 +416,6 @@ export function AppProvider({ children }) {
     const checkKey = `check_${dateStr}_${habitId}`
 
     if (habit.type === 'positive') {
-      await del(checkKey) // 删除键
-      // 由于我们使用了全局存储，实际存储的是 { key, value } 格式
-      // 使用 setGlobal 和设置 null 的方式
-      await setGlobal(checkKey, null)
-      // 修正：使用实际的删除方式
       await delKey(checkKey)
       await updateScore(-(habit.score || 5))
     } else {

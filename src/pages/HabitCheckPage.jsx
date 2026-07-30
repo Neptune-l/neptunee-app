@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
 import { getToday, isToday, getFriendlyDate, getMonthRange } from '../utils/date'
 import { getAll } from '../store/db'
@@ -15,6 +15,7 @@ export default function HabitCheckPage({ openSubpage }) {
   const [confirmAction, setConfirmAction] = useState(null)
   const [statusVersion, setStatusVersion] = useState(0)
   const [editingHabit, setEditingHabit] = useState(null)
+  const longPressTimer = useRef(null)
   const [restraintStats, setRestraintStats] = useState({ thisMonth: 0, lastMonth: 0 })
   const today = getToday()
   const isViewToday = viewDate === today
@@ -56,7 +57,7 @@ export default function HabitCheckPage({ openSubpage }) {
       } catch (e) { console.error(e) }
     }
     loadStats()
-  }, [loaded, habits, monthRange])
+  }, [loaded, habits, monthRange, statusVersion])
 
   const filteredHabits = useMemo(() => {
     return habits.filter(h => {
@@ -132,7 +133,7 @@ export default function HabitCheckPage({ openSubpage }) {
             if (habit.frequency) { if (habit.frequency.type === 'weekly') freqLabel = '每周' + (habit.frequency.days?.length || 0) + '次'; else if (habit.frequency.type === 'biweekly') freqLabel = '每' + (habit.frequency.interval || 2) + '周' + (habit.frequency.days?.length || 1) + '次'; else if (habit.frequency.type === 'monthly') freqLabel = '每月打卡' }
             return (
               <div key={habit.id} className="list-item" style={{ opacity: isChecked ? 0.7 : 1, cursor: 'pointer' }}
-                onClick={() => handleAction(habit)} onContextMenu={(e) => { e.preventDefault(); handleLongPress(habit) }}>
+                onClick={() => handleAction(habit)} onContextMenu={(e) => { e.preventDefault(); handleLongPress(habit) }} onTouchStart={() => { longPressTimer.current = setTimeout(() => handleLongPress(habit), 600) }} onTouchEnd={() => { clearTimeout(longPressTimer.current) }} onTouchMove={() => { clearTimeout(longPressTimer.current) }}>
                 <div className="item-icon" style={{ background: (habit.color || '#F2B8C6') + '33' }}>{habit.emoji || (habit.type === 'positive' ? '💪' : '🛡️')}</div>
                 <div className="item-content"><div className="item-title">{habit.name}</div>
                   <div className="item-sub">{habit.type === 'positive' ? '+' + (habit.score || 5) + '分 · ' + freqLabel : '-' + (habit.score || 3) + '分'}</div>

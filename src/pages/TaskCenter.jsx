@@ -6,7 +6,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import TaskEdit from '../subpages/TaskEdit'
 
 export default function TaskCenter({ openSubpage }) {
-  const { loaded, tasks, viewDate, setViewDate, checkHabit } = useApp()
+  const { loaded, tasks, viewDate, setViewDate, checkHabit, uncheckHabit } = useApp()
   const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('pending')
   const [editingTask, setEditingTask] = useState(null)
@@ -44,6 +44,9 @@ export default function TaskCenter({ openSubpage }) {
           task.completed = false
           task.completeTime = null
           await updateTask(task)
+          if (task.linkedHabitId) {
+            await uncheckHabit(task.linkedHabitId, viewDate)
+          }
           showGlobalToast('已取消完成')
           setConfirmAction(null)
         },
