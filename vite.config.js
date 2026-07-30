@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/neptune-app/',
+  base: '/neptunee-app/',
   plugins: [
     react(),
     VitePWA({
