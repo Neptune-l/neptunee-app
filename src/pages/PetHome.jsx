@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
-import { PET_SPECIES, PET_STATE_META, PET_LINES, PET_MARKET_IMG } from '../utils/petConstants'
+import { PET_SPECIES, PET_STATE_META, PET_LINES, PET_MARKET_IMG, getTimePeriod } from '../utils/petConstants'
 import { computePetView } from '../utils/petLogic'
 import { getToday } from '../utils/date'
+import bubbleImg from '../assets/pet/bubble.png'
 
 export default function PetHome({ petId, onClose }) {
   const {
@@ -21,20 +22,12 @@ export default function PetHome({ petId, onClose }) {
   const history = petHistory.filter(h => h.petId === petId)
   const view = useMemo(() => computePetView(pet, plan, history, today), [pet, plan, history, today])
 
-  const linePool = useMemo(() => {
-    if (!pet) return []
-    const now = new Date()
-    const pool = PET_LINES[pet.species]?.[view.state] || []
-    if (view.state !== 'alive' && now.getHours() >= 19 && PET_LINES[pet.species]?.evening) {
-      return [...PET_LINES[pet.species].evening, ...pool]
-    }
-    return pool
-  }, [pet, view.state])
-
-  const speak = () => {
-    if (linePool.length === 0) return
-    const pick = linePool[Math.floor(Math.random() * linePool.length)]
-    setLine(pick)
+  const pickLine = () => {
+    if (!pet || !view) return ''
+    const period = getTimePeriod()
+    const pool = PET_LINES[pet.species]?.[period]?.[view.state] || []
+    if (pool.length === 0) return ''
+    return pool[Math.floor(Math.random() * pool.length)]
   }
 
   if (!pet || !view) return <div className="loading">加载中...</div>
@@ -72,7 +65,7 @@ export default function PetHome({ petId, onClose }) {
       <div className="subpage-body">
         <div className="tab-bar" style={{ marginBottom: 12 }}>
           <button className={'tab-bar-item' + (tab === 'metric' ? ' active' : '')} onClick={() => setTab('metric')}>活命指标</button>
-          <button className={'tab-bar-item' + (tab === 'play' ? ' active' : '')} onClick={() => { setTab('play'); speak() }}>贴贴互动</button>
+          <button className={'tab-bar-item' + (tab === 'play' ? ' active' : '')} onClick={() => { setTab('play'); setLine(pickLine()) }}>贴贴互动</button>
         </div>
 
         {tab === 'metric' ? (
@@ -175,12 +168,12 @@ export default function PetHome({ petId, onClose }) {
         ) : (
           <>
             {/* 贴贴互动 */}
-            <div className="pet-stage-area" onClick={speak}>
+            <div className="pet-stage-area">
               <img src={bigImg} alt={sp.name} className="pet-big" style={{ opacity: view.state === 'dead' ? 0.75 : 1 }} />
               <div className="pet-name-tag">{pet.name} · {st.name}</div>
             </div>
-            {line && <div className="pet-bubble">{line}</div>}
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', marginTop: 8 }}>点它一下，听它说话</div>
+            {line && <div className="pet-bubble" style={{ backgroundImage: `url(${bubbleImg})` }}>{line}</div>}
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', marginTop: 8 }}>每次进来它都会说一句悄悄话</div>
 
             {/* 装饰展示 */}
             {ownedDecor.length > 0 && (

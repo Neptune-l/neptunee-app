@@ -29,7 +29,7 @@ export default function PetHall({ openSubpage }) {
     <>
       <div className="page-content">
         <div className="top-bar">
-          <div className="top-bar-left"><span className="date-display">🐾 收容大厅</span></div>
+          <div className="top-bar-left"><span style={{ fontSize: 17, fontWeight: 700 }}>🐾 收容大厅</span></div>
           <div className="top-bar-right pet-wallet">
             <img src={PET_ITEM_ICON.ration} alt="口粮" className="wallet-ico" />
             <span>{petRations}</span>

@@ -27,9 +27,7 @@
 .pet-stage-area:active .pet-big { transform: translateY(2px) scale(0.97); }
 .pet-name-tag { margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 
-.pet-bubble { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-top: 12px; font-size: 13px; line-height: 1.7; color: var(--text-primary); position: relative; }
-.pet-bubble::before { content: ''; position: absolute; top: -8px; left: 24px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid var(--border); }
-.pet-bubble::after { content: ''; position: absolute; top: -6px; left: 25px; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 7px solid #fff; }
+.pet-bubble { position: relative; margin: 14px auto 0; width: min(300px, 84vw); min-height: 104px; padding: 36px 24px 28px; background: transparent no-repeat center / 100% 100%; font-size: 14px; line-height: 1.75; color: var(--text-primary); text-align: center; }
 
 .pet-decor-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .pet-decor { width: 52px; height: 52px; border-radius: 10px; background: #FFF8F2; display: flex; align-items: center; justify-content: center; }
