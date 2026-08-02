@@ -8,6 +8,7 @@ import FocusTimer from './pages/FocusTimer'
 import Accounting from './pages/Accounting'
 import Statistics from './pages/Statistics'
 import Profile from './pages/Profile'
+import PetHall from './pages/PetHall'
 import { setGlobalNavigateTab } from './store/store'
 import { useEffect } from 'react'
 
@@ -15,7 +16,7 @@ const TABS = [
   { key: 'home', label: '首页', icon: '🏠' },
   { key: 'habits', label: '打卡', icon: '✅' },
   { key: 'tasks', label: '任务', icon: '📋' },
-  { key: 'timer', label: '专注', icon: '⏱️' },
+  { key: 'pets', label: '小可怜', icon: '🐾' },
   { key: 'accounting', label: '记账', icon: '💰' },
   { key: 'stats', label: '数据', icon: '📊' },
   { key: 'profile', label: '我的', icon: '👤' },
@@ -26,6 +27,7 @@ const PAGES = {
   habits: HabitCheckPage,
   tasks: TaskCenter,
   timer: FocusTimer,
+  pets: PetHall,
   accounting: Accounting,
   stats: Statistics,
   profile: Profile,

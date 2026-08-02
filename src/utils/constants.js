@@ -39,6 +39,10 @@ export const STORE_NAMES = {
   GOALS: 'goals',
   ACHIEVEMENTS: 'achievements',
   FOCUS_WEEKS: 'focusWeeks',
+  PETS: 'pets',
+  PET_PLANS: 'petPlans',
+  PET_HISTORY: 'petHistory',
+  PET_INVENTORY: 'petInventory',
   GLOBAL: 'global',
 }
 

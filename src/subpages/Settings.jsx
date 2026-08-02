@@ -4,7 +4,7 @@ import { exportAllData, importAllData, clearAllData } from '../store/db'
 import ConfirmModal from '../components/ConfirmModal'
 
 export default function Settings({ onClose }) {
-  const { theme, setTheme, greetingEnabled, setGreetingEnabled } = useApp()
+  const { theme, setTheme, greetingEnabled, setGreetingEnabled, petWidgetEnabled, togglePetWidget } = useApp()
   const [showThemePicker, setShowThemePicker] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -81,6 +81,13 @@ export default function Settings({ onClose }) {
               <span className="settings-label">显示欢迎语</span>
             </div>
             <div className={`toggle-switch${greetingEnabled ? ' on' : ''}`} />
+          </div>
+          <div className="settings-item" onClick={() => togglePetWidget()}>
+            <div className="settings-left">
+              <span className="settings-icon">🐾</span>
+              <span className="settings-label">首页置顶小可怜</span>
+            </div>
+            <div className={`toggle-switch${petWidgetEnabled ? ' on' : ''}`} />
           </div>
         </div>
 

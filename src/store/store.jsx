@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { get, getAll, put, del, clear, getGlobal, setGlobal, exportAllData, importAllData, clearAllData, deleteKey as delKey } from './db'
 import { STORE_NAMES, ACHIEVEMENTS_CONFIG } from '../utils/constants'
 import { getWeekKey, getToday, generateId } from '../utils/date'
+import { PET_MARKET_ITEMS, PET_SPECIES } from '../utils/petConstants'
+import { buildPlanDays, computePetView } from '../utils/petLogic'
 
 const AppContext = createContext(null)
 
@@ -35,6 +37,14 @@ export function AppProvider({ children }) {
   const [goals, setGoals] = useState([])
   const [achievements, setAchievements] = useState([])
   const [focusWeeks, setFocusWeeks] = useState([])
+  const [pets, setPets] = useState([])
+  const [petPlans, setPetPlans] = useState([])
+  const [petHistory, setPetHistory] = useState([])
+  const [petInventory, setPetInventory] = useState([])
+  const [petRations, setPetRations] = useState(0)
+  const [petRevivePills, setPetRevivePills] = useState(0)
+  const [petCatchupTickets, setPetCatchupTickets] = useState(0)
+  const [petWidgetEnabled, setPetWidgetEnabled] = useState(false)
   const [totalScore, setTotalScore] = useState(0)
   const [maxScore, setMaxScore] = useState(0)
   const [theme, setTheme] = useState('light')
@@ -57,7 +67,7 @@ export function AppProvider({ children }) {
 
   // 加载所有数据
   const loadAll = useCallback(async () => {
-    const [h, t, b, c, w, e, f, d, g, a, fw] = await Promise.all([
+    const [h, t, b, c, w, e, f, d, g, a, fw, p, pp, ph, pi] = await Promise.all([
       getAll(STORE_NAMES.HABITS),
       getAll(STORE_NAMES.TASKS),
       getAll(STORE_NAMES.BILLS),
@@ -69,6 +79,10 @@ export function AppProvider({ children }) {
       getAll(STORE_NAMES.GOALS),
       getAll(STORE_NAMES.ACHIEVEMENTS),
       getAll(STORE_NAMES.FOCUS_WEEKS),
+      getAll(STORE_NAMES.PETS),
+      getAll(STORE_NAMES.PET_PLANS),
+      getAll(STORE_NAMES.PET_HISTORY),
+      getAll(STORE_NAMES.PET_INVENTORY),
     ])
     setHabits(h || [])
     setTasks(t || [])
@@ -81,6 +95,10 @@ export function AppProvider({ children }) {
     setGoals(g || [])
     setAchievements(a || [])
     setFocusWeeks(fw || [])
+    setPets(p || [])
+    setPetPlans(pp || [])
+    setPetHistory(ph || [])
+    setPetInventory(pi || [])
 
     // 加载全局设置
     const savedScore = await getGlobal('totalScore')
@@ -89,6 +107,10 @@ export function AppProvider({ children }) {
     const savedGreeting = await getGlobal('greetingEnabled')
     const savedChatCounter = await getGlobal('chatCounter')
     const savedLastWeek = await getGlobal('lastProcessedWeek')
+    const savedRations = await getGlobal('petRations')
+    const savedRevivePills = await getGlobal('petRevivePills')
+    const savedCatchupTickets = await getGlobal('petCatchupTickets')
+    const savedPetWidget = await getGlobal('petWidgetEnabled')
 
     setTotalScore(savedScore || 0)
     setMaxScore(savedMaxScore || 0)
@@ -97,6 +119,10 @@ export function AppProvider({ children }) {
     else setGreetingEnabled(true)
     if (savedChatCounter) setChatCounter(savedChatCounter)
     if (savedLastWeek) lastProcessedWeekKey.current = savedLastWeek
+    setPetRations(savedRations || 0)
+    setPetRevivePills(savedRevivePills || 0)
+    setPetCatchupTickets(savedCatchupTickets || 0)
+    setPetWidgetEnabled(!!savedPetWidget)
 
     setLoaded(true)
     initializationDone.current = true
@@ -440,6 +466,238 @@ export function AppProvider({ children }) {
     }
   }, [habits])
 
+  // ===== 小可怜：数据与逻辑 =====
+  const savePetWallet = useCallback(async (rations, pills, tickets) => {
+    await setGlobal('petRations', rations)
+    await setGlobal('petRevivePills', pills)
+    await setGlobal('petCatchupTickets', tickets)
+  }, [])
+
+  const checkGraduate = useCallback((pet) => {
+    if (pet.growth >= 1000 && pet.status !== 'memorialized' && pet.status !== 'graduated') {
+      return { ...pet, status: 'graduated', graduateAt: Date.now(), growth: 1000 }
+    }
+    return pet
+  }, [])
+
+  const addPet = useCallback(async ({ species, name, planName, days, templateTasks }) => {
+    const today = getToday()
+    const pet = {
+      id: generateId(),
+      species,
+      name: (name || '').trim() || PET_SPECIES[species]?.name || '小可怜',
+      planName: (planName || '').trim() || '长期坚持计划',
+      growth: 0,
+      revivesLeft: 3,
+      reviveCount: 0,
+      status: 'active',
+      createdAt: Date.now(),
+      planStart: today,
+      planDays: Math.max(1, Number(days) || 30),
+      streak: 0,
+    }
+    const tasks = (templateTasks || []).filter(Boolean).slice(0, 20)
+    const plan = { id: pet.id, days: buildPlanDays(today, pet.planDays, tasks) }
+    await put(STORE_NAMES.PETS, pet)
+    await put(STORE_NAMES.PET_PLANS, plan)
+    setPets(prev => [...prev, pet])
+    setPetPlans(prev => [...prev, plan])
+    return pet
+  }, [])
+
+  const togglePetTask = useCallback(async (petId, date, taskId) => {
+    const today = getToday()
+    if (date !== today) return null
+    const pet = pets.find(p => p.id === petId)
+    const plan = petPlans.find(p => p.id === petId)
+    if (!pet || !plan || pet.status === 'memorialized' || pet.status === 'graduated') return null
+    const day = plan.days.find(d => d.date === date)
+    if (!day) return null
+    const task = day.tasks.find(t => t.id === taskId)
+    if (!task) return null
+
+    const wasOk = day.tasks.length > 0 && day.tasks.every(t => t.done)
+    task.done = !task.done
+    const nowOk = day.tasks.length > 0 && day.tasks.every(t => t.done)
+    const newPet = { ...pet }
+    const history = [...petHistory]
+    let rations = petRations
+
+    if (task.done) {
+      newPet.growth = (newPet.growth || 0) + 1
+      if (nowOk && !wasOk) {
+        const daily = await getGlobal('petDailyRations') || { date: '', amount: 0 }
+        if (daily.date !== today) { daily.date = today; daily.amount = 0 }
+        const add = Math.min(10, 30 - daily.amount)
+        if (add > 0) {
+          daily.amount += add
+          rations += add
+          await setGlobal('petDailyRations', daily)
+        }
+        const h = history.find(x => x.petId === petId && x.date === date)
+        if (h) { h.ok = true; h.viaTicket = false }
+        else history.push({ id: `${petId}_${date}`, petId, date, ok: true, viaTicket: false })
+      }
+    } else {
+      newPet.growth = Math.max(0, (newPet.growth || 0) - 1)
+      if (wasOk && !nowOk) {
+        const daily = await getGlobal('petDailyRations') || { date: '', amount: 0 }
+        if (daily.date === today) {
+          daily.amount = Math.max(0, daily.amount - 10)
+          await setGlobal('petDailyRations', daily)
+        }
+        rations = Math.max(0, petRations - 10)
+        const h = history.find(x => x.petId === petId && x.date === date)
+        if (h) h.ok = false
+      }
+    }
+
+    const finalPet = checkGraduate(newPet)
+    const finalView = computePetView(finalPet, plan, history, today)
+    const savedPet = { ...finalPet, totalDays: finalView.totalDays, okDays: finalView.okDays }
+    await put(STORE_NAMES.PET_PLANS, plan)
+    await put(STORE_NAMES.PETS, savedPet)
+    await savePetWallet(rations, petRevivePills, petCatchupTickets)
+    setPetPlans(prev => prev.map(p => p.id === plan.id ? plan : p))
+    setPets(prev => prev.map(p => p.id === savedPet.id ? savedPet : p))
+    setPetHistory(history)
+    setPetRations(rations)
+    return { growth: savedPet.growth, graduate: savedPet.status === 'graduated' }
+  }, [pets, petPlans, petHistory, petRations, petRevivePills, petCatchupTickets, checkGraduate, savePetWallet])
+
+  const useCatchupTicket = useCallback(async (petId, date) => {
+    const today = getToday()
+    if (date >= today) return false
+    const pet = pets.find(p => p.id === petId)
+    const plan = petPlans.find(p => p.id === petId)
+    if (!pet || !plan || pet.status !== 'active') return false
+    const view = computePetView(pet, plan, petHistory.filter(h => h.petId === petId), today)
+    if (view.state === 'dead') return false
+    const day = plan.days.find(d => d.date === date)
+    if (!day || day.tasks.length === 0 || day.tasks.every(t => t.done)) return false
+    if (petCatchupTickets < 1) return false
+
+    const newPet = { ...pet, growth: pet.growth + day.tasks.length }
+    const history = [...petHistory]
+    const h = history.find(x => x.petId === petId && x.date === date)
+    if (h) { h.ok = true; h.viaTicket = true }
+    else history.push({ id: `${petId}_${date}`, petId, date, ok: true, viaTicket: true })
+
+    const daily = await getGlobal('petDailyRations') || { date: '', amount: 0 }
+    if (daily.date !== today) { daily.date = today; daily.amount = 0 }
+    const add = Math.min(10, 30 - daily.amount)
+    const rations = add > 0 ? petRations + add : petRations
+    if (add > 0) { daily.amount += add; await setGlobal('petDailyRations', daily) }
+    const tickets = petCatchupTickets - 1
+
+    const finalPet = checkGraduate(newPet)
+    const finalView = computePetView(finalPet, plan, history, today)
+    const savedPet = { ...finalPet, totalDays: finalView.totalDays, okDays: finalView.okDays }
+    await put(STORE_NAMES.PETS, savedPet)
+    await savePetWallet(rations, petRevivePills, tickets)
+    setPets(prev => prev.map(p => p.id === savedPet.id ? savedPet : p))
+    setPetHistory(history)
+    setPetRations(rations)
+    setPetCatchupTickets(tickets)
+    return true
+  }, [pets, petPlans, petHistory, petRations, petRevivePills, petCatchupTickets, checkGraduate, savePetWallet])
+
+  const revivePet = useCallback(async (petId) => {
+    const pet = pets.find(p => p.id === petId)
+    if (!pet || pet.status !== 'dead' || pet.revivesLeft <= 0 || petRevivePills < 1) return false
+    const newPet = {
+      ...pet,
+      status: 'active',
+      revivesLeft: pet.revivesLeft - 1,
+      reviveCount: (pet.reviveCount || 0) + 1,
+      deadAt: null,
+      revivedAt: today,
+      streak: 0,
+    }
+    const pills = petRevivePills - 1
+    await put(STORE_NAMES.PETS, newPet)
+    await savePetWallet(petRations, pills, petCatchupTickets)
+    setPets(prev => prev.map(p => p.id === newPet.id ? newPet : p))
+    setPetRevivePills(pills)
+    return true
+  }, [pets, petRations, petRevivePills, petCatchupTickets, savePetWallet])
+
+  const buyMarketItem = useCallback(async (itemId) => {
+    const item = PET_MARKET_ITEMS.find(i => i.id === itemId)
+    if (!item || petRations < item.price) return false
+    const rations = petRations - item.price
+    await setGlobal('petRations', rations)
+    setPetRations(rations)
+    if (item.type === 'consumable') {
+      if (item.target === 'revivePills') {
+        const count = petRevivePills + 1
+        await setGlobal('petRevivePills', count)
+        setPetRevivePills(count)
+      } else {
+        const count = petCatchupTickets + 1
+        await setGlobal('petCatchupTickets', count)
+        setPetCatchupTickets(count)
+      }
+    } else {
+      const owned = { id: generateId(), itemId, species: item.species || null, boughtAt: Date.now() }
+      await put(STORE_NAMES.PET_INVENTORY, owned)
+      setPetInventory(prev => [...prev, owned])
+    }
+    return true
+  }, [petRations, petRevivePills, petCatchupTickets])
+
+  const updatePetPlanDay = useCallback(async (petId, date, texts) => {
+    const plan = petPlans.find(p => p.id === petId)
+    if (!plan || date < getToday()) return
+    const day = plan.days.find(d => d.date === date)
+    if (!day) return
+    day.tasks = texts.filter(Boolean).slice(0, 20).map((text, j) => ({
+      id: `${date}_${j}`,
+      text,
+      done: day.tasks[j]?.done || false,
+    }))
+    await put(STORE_NAMES.PET_PLANS, plan)
+    setPetPlans(prev => prev.map(p => p.id === plan.id ? plan : p))
+  }, [petPlans])
+
+  const togglePetWidget = useCallback(async () => {
+    const v = !petWidgetEnabled
+    await setGlobal('petWidgetEnabled', v)
+    setPetWidgetEnabled(v)
+  }, [petWidgetEnabled])
+
+  const evaluatePets = useCallback(async () => {
+    if (!loaded) return
+    const today = getToday()
+    let changed = false
+    const updatedPets = []
+    for (const pet of pets) {
+      if (pet.status !== 'active' && pet.status !== 'dead') {
+        updatedPets.push(pet)
+        continue
+      }
+      const plan = petPlans.find(p => p.id === pet.id)
+      const history = petHistory.filter(h => h.petId === pet.id)
+      const view = computePetView(pet, plan, history, today)
+      let next = { ...pet, streak: view.streak, totalDays: view.totalDays, okDays: view.okDays }
+      if (view.state === 'dead' && next.status === 'active') {
+        next.status = 'dead'
+        next.deadAt = today
+      }
+      if (next.status === 'dead' && next.revivesLeft <= 0) {
+        next.status = 'memorialized'
+        next.memorialAt = today
+      }
+      next = checkGraduate(next)
+      if (JSON.stringify(next) !== JSON.stringify(pet)) {
+        await put(STORE_NAMES.PETS, next)
+        changed = true
+      }
+      updatedPets.push(next)
+    }
+    if (changed) setPets(updatedPets)
+  }, [loaded, pets, petPlans, petHistory, checkGraduate])
+
   // ===== 初始化默认分类 =====
   useEffect(() => {
     if (!loaded) return
@@ -453,7 +711,9 @@ export function AppProvider({ children }) {
     }
     // 处理每周焦点
     processFocusWeek()
-  }, [loaded, categories.length])
+    // 处理小可怜状态
+    evaluatePets()
+  }, [loaded, categories.length, evaluatePets])
 
   // 监听主题变化
   useEffect(() => {
@@ -465,6 +725,8 @@ export function AppProvider({ children }) {
   const value = {
     loaded, habits, tasks, bills, categories, wishes, exchangeRecords,
     focusDiary, dietRecords, goals, achievements, focusWeeks,
+    pets, petPlans, petHistory, petInventory,
+    petRations, petRevivePills, petCatchupTickets, petWidgetEnabled,
     totalScore, maxScore, theme, greetingEnabled, chatCounter,
     currentDate, setCurrentDate, viewDate, setViewDate,
     updateScore, getCurrentScore, checkAchievements, onScoreChange,
@@ -478,6 +740,8 @@ export function AppProvider({ children }) {
     addGoal, updateGoal, deleteGoal,
     processFocusWeek, settleFocusWeek,
     checkHabit, uncheckHabit, getHabitStatus,
+    addPet, togglePetTask, useCatchupTicket, revivePet,
+    buyMarketItem, updatePetPlanDay, togglePetWidget, evaluatePets,
     setTheme, setGreetingEnabled, setChatCounter,
   }
 

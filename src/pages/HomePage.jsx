@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useApp, showGlobalToast } from '../store/store'
+import { useApp, showGlobalToast, navigateToTab } from '../store/store'
 import { getToday, isToday, getFriendlyDate } from '../utils/date'
 import CalendarModal from '../components/CalendarModal'
 import ConfirmModal from '../components/ConfirmModal'
 import TaskEdit from '../subpages/TaskEdit'
+import { PET_SPECIES, PET_STATE_META, PET_WIDGET_TEXT } from '../utils/petConstants'
+import { computePetView } from '../utils/petLogic'
 
 export default function HomePage({ openSubpage }) {
-  const { loaded, habits, tasks, bills, focusDiary, totalScore, viewDate, setViewDate, updateTask, checkHabit, uncheckHabit, getHabitStatus } = useApp()
+  const { loaded, habits, tasks, bills, focusDiary, totalScore, viewDate, setViewDate, updateTask, checkHabit, uncheckHabit, getHabitStatus, pets, petPlans, petHistory, petWidgetEnabled } = useApp()
   const [showCalendar, setShowCalendar] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null)
   const [editingTask, setEditingTask] = useState(null)
@@ -46,6 +48,15 @@ export default function HomePage({ openSubpage }) {
     })
   }, [habits, viewDate])
 
+  const widgetPet = useMemo(() => {
+    if (!petWidgetEnabled) return null
+    const active = pets.find(p => p.status === 'active' || p.status === 'dead')
+    if (!active) return null
+    return {
+      ...computePetView(active, petPlans.find(pl => pl.id === active.id), petHistory.filter(h => h.petId === active.id), viewDate),
+    }
+  }, [petWidgetEnabled, pets, petPlans, petHistory, viewDate])
+
   const allDone = todayHabits.length > 0 && todayHabits.every(h => habitStatuses[h.id]?.checked)
   const fmtFocus = (secs) => secs >= 3600 ? (secs / 3600).toFixed(1) + 'h' : Math.round(secs / 60) + 'm'
 
@@ -82,6 +93,18 @@ export default function HomePage({ openSubpage }) {
           </div>
           <div className="top-bar-right"><span className="score-display">{totalScore}</span></div>
         </div>
+        {widgetPet && (
+          <div className="pet-widget" onClick={() => navigateToTab('pets')}>
+            <img src={PET_SPECIES[widgetPet.pet.species].icon} alt="小可怜" />
+            <div>
+              <div className="pet-widget-name">{widgetPet.pet.name}</div>
+              <div className="pet-widget-text">{PET_WIDGET_TEXT[widgetPet.state]}</div>
+            </div>
+            <span className="pet-widget-state" style={{ color: PET_STATE_META[widgetPet.state].color }}>
+              {PET_STATE_META[widgetPet.state].name}
+            </span>
+          </div>
+        )}
         <div className="card-section"><p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>今天也要好好加油呀</p></div>
         {allDone && <div className="card" style={{ marginBottom: 12, textAlign: 'center', background: 'var(--success)', color: '#fff' }}>🎉 今天的打卡全部完成！太棒了！</div>}
         <div className="summary-cards">
