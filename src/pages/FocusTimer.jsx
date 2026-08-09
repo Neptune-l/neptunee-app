@@ -3,6 +3,8 @@ import { useApp, showGlobalToast, navigateToTab } from '../store/store'
 import { getToday } from '../utils/date'
 import ConfirmModal from '../components/ConfirmModal'
 
+const SESSION_KEY = 'focusTimerState'
+
 export default function FocusTimer() {
   const { loaded, tasks, updateTask, checkHabit, addFocusDiary } = useApp()
   const today = getToday()
@@ -22,12 +24,49 @@ export default function FocusTimer() {
 
   const POMO_WORK = 25 * 60, POMO_SHORT = 5 * 60, POMO_LONG = 15 * 60
 
+  const clearSession = useCallback(() => {
+    localStorage.removeItem(SESSION_KEY)
+  }, [])
+
+  const saveSession = useCallback((running, paused) => {
+    if (!selectedTask) { localStorage.removeItem(SESSION_KEY); return }
+    const extra = running && !paused && startTimeRef.current
+      ? Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000))
+      : 0
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      taskId: selectedTask.id,
+      mode: timerMode,
+      pomoPhase,
+      pomoCycle,
+      elapsed: elapsedRef.current + extra,
+      isRunning: running,
+      isPaused: paused,
+    }))
+  }, [selectedTask, timerMode, pomoPhase, pomoCycle])
+
+  // 进入页面恢复上次会话（以暂停态展示，用户点“继续计时”）
   useEffect(() => {
     if (!loaded) return
-    const saved = localStorage.getItem('focusTimerState')
-    if (saved) { try { const s = JSON.parse(saved); if (s.taskId) { const t = tasks.find(x => x.id === s.taskId); if (t) { setSelectedTask(t); const base = t.timerTotal || 0; setElapsed(base); elapsedRef.current = base } } } catch (e) {} }
-  }, [loaded, tasks])
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return
+    try {
+      const s = JSON.parse(raw)
+      const t = tasks.find(x => x.id === s.taskId)
+      if (!t) { clearSession(); return }
+      setSelectedTask(t)
+      if (s.mode) setTimerMode(s.mode)
+      if (s.pomoPhase) setPomoPhase(s.pomoPhase)
+      if (typeof s.pomoCycle === 'number') setPomoCycle(s.pomoCycle)
+      const base = Number(s.elapsed) || 0
+      setElapsed(base)
+      elapsedRef.current = base
+      setIsRunning(true)
+      setIsPaused(true)
+      startTimeRef.current = Date.now()
+    } catch (e) { clearSession() }
+  }, [loaded, tasks, clearSession])
 
+  // 番茄钟阶段自动流转
   useEffect(() => {
     if (timerMode === 'pomodoro' && isComplete && selectedTask) {
       if (pomoPhase === 'work') {
@@ -51,14 +90,11 @@ export default function FocusTimer() {
     }
   }, [isComplete])
 
-  const saveTimerState = useCallback(() => {
-    if (selectedTask) { localStorage.setItem('focusTimerState', JSON.stringify({ taskId: selectedTask.id, isRunning, startTime: isRunning ? (startTimeRef.current || Date.now()) : null })) }
-  }, [selectedTask, isRunning])
-
+  // 计时主循环
   useEffect(() => {
     if (isRunning && !isPaused && selectedTask && !isComplete) {
+      if (!startTimeRef.current) startTimeRef.current = Date.now()
       timerRef.current = setInterval(() => {
-        if (!startTimeRef.current) startTimeRef.current = Date.now()
         const extra = Math.floor((Date.now() - startTimeRef.current) / 1000)
         const total = elapsedRef.current + extra
         setElapsed(total)
@@ -77,29 +113,113 @@ export default function FocusTimer() {
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [isRunning, isPaused, selectedTask, isComplete, timerMode, pomoPhase])
 
-  useEffect(() => { const si = setInterval(saveTimerState, 5000); return () => clearInterval(si) }, [saveTimerState])
+  // 运行中每 5 秒持久化一次进度，退出页面不丢
+  useEffect(() => {
+    if (!selectedTask) return
+    const si = setInterval(() => saveSession(isRunning, isPaused), 5000)
+    return () => clearInterval(si)
+  }, [selectedTask, isRunning, isPaused, saveSession])
+
+  // 番茄钟阶段/轮次变化时保存
+  useEffect(() => {
+    if (selectedTask && isRunning && !isPaused) saveSession(true, false)
+  }, [pomoPhase, pomoCycle, selectedTask, isRunning, isPaused, saveSession])
 
   const completeTimer = async () => {
     setIsRunning(false); setIsComplete(true); clearInterval(timerRef.current)
+    clearSession()
     if (selectedTask) {
-      selectedTask.timerTotal = elapsedRef.current; selectedTask.completed = true; selectedTask.completeTime = Date.now()
+      selectedTask.timerTotal = elapsedRef.current
+      selectedTask.completed = true
+      selectedTask.completeTime = Date.now()
       await updateTask(selectedTask)
-      if (selectedTask.linkedHabitId) { const r = await checkHabit(selectedTask.linkedHabitId, today); if (r && !r.already) showGlobalToast('专注完成！习惯自动打卡 +' + r.delta + '分') } else { showGlobalToast('专注时长达标！任务已完成') }
+      if (selectedTask.linkedHabitId) {
+        const r = await checkHabit(selectedTask.linkedHabitId, today)
+        if (r && !r.already) showGlobalToast('专注完成！习惯自动打卡 +' + r.delta + '分')
+      } else {
+        showGlobalToast('专注时长达标！任务已完成')
+      }
       await addFocusDiary({ taskName: selectedTask.name, duration: elapsedRef.current, date: today })
     }
-    localStorage.removeItem('focusTimerState')
   }
 
-  const handleStart = () => { startTimeRef.current = Date.now(); elapsedRef.current = elapsed; setIsRunning(true); setIsPaused(false) }
-  const handlePause = () => { clearInterval(timerRef.current); elapsedRef.current = elapsed; setIsPaused(true) }
-  const handleResume = () => { startTimeRef.current = Date.now(); setIsPaused(false) }
+  const handleStart = () => {
+    startTimeRef.current = Date.now()
+    elapsedRef.current = elapsed
+    setIsRunning(true)
+    setIsPaused(false)
+    saveSession(true, false)
+  }
+
+  const handlePause = () => {
+    clearInterval(timerRef.current)
+    elapsedRef.current = elapsed
+    setIsPaused(true)
+    saveSession(true, true)
+  }
+
+  const handleResume = () => {
+    startTimeRef.current = Date.now()
+    setIsPaused(false)
+    saveSession(true, false)
+  }
+
   const handleQuit = () => setShowQuitConfirm(true)
+
   const confirmQuit = () => {
-    clearInterval(timerRef.current); setElapsed(0); elapsedRef.current = 0; setIsRunning(false); setIsPaused(false); setIsComplete(false)
-    setSelectedTask(null); setPomoPhase('work'); setPomoCycle(0); localStorage.removeItem('focusTimerState'); setShowQuitConfirm(false)
+    clearInterval(timerRef.current)
+    setElapsed(0); elapsedRef.current = 0
+    setIsRunning(false); setIsPaused(false); setIsComplete(false)
+    setSelectedTask(null); setPomoPhase('work'); setPomoCycle(0)
+    clearSession()
+    setShowQuitConfirm(false)
   }
 
-  const formatTime = (s) => { const m = Math.floor(s / 60); const sec = s % 60; return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0') }
+  const resetSelection = () => {
+    setSelectedTask(null)
+    setElapsed(0); elapsedRef.current = 0
+    setIsRunning(false); setIsPaused(false); setIsComplete(false)
+  }
+
+  const hasSessionFor = (taskId) => {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return false
+    try { return JSON.parse(raw).taskId === taskId } catch (e) { return false }
+  }
+
+  const pickTask = (task) => {
+    setSelectedTask(task)
+    setShowTaskPicker(false)
+    setIsComplete(false)
+    const raw = localStorage.getItem(SESSION_KEY)
+    let restored = false
+    if (raw) {
+      try {
+        const s = JSON.parse(raw)
+        if (s.taskId === task.id) {
+          if (s.mode) setTimerMode(s.mode)
+          if (s.pomoPhase) setPomoPhase(s.pomoPhase)
+          if (typeof s.pomoCycle === 'number') setPomoCycle(s.pomoCycle)
+          const base = Number(s.elapsed) || 0
+          setElapsed(base); elapsedRef.current = base
+          setIsRunning(true); setIsPaused(true)
+          startTimeRef.current = Date.now()
+          restored = true
+        }
+      } catch (e) {}
+    }
+    if (!restored) {
+      setElapsed(0); elapsedRef.current = 0
+      setIsRunning(false); setIsPaused(false)
+      setTimerMode('regular'); setPomoPhase('work'); setPomoCycle(0)
+    }
+  }
+
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0')
+  }
 
   const todayTasksWithTimer = tasks.filter(t => t.date === today && !t.completed && t.timerTarget > 0)
   const targetSeconds = timerMode === 'regular' ? ((selectedTask?.timerTarget || 0) * 60) : (pomoPhase === 'work' ? POMO_WORK : pomoPhase === 'longBreak' ? POMO_LONG : POMO_SHORT)
@@ -139,7 +259,7 @@ export default function FocusTimer() {
         </div>
       </div>
       {/* 操作区 */}
-      <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
         {!selectedTask ? (
           <button className="btn btn-primary" onClick={() => setShowTaskPicker(true)}>选择任务</button>
         ) : isComplete ? (
@@ -147,16 +267,26 @@ export default function FocusTimer() {
             if (timerMode === 'regular') navigateToTab('home')
             else { setIsComplete(false); setIsRunning(false); setElapsed(0); elapsedRef.current = 0 }
           }}>{timerMode === 'regular' ? '返回首页' : '继续下一个番茄'}</button>
+        ) : isPaused ? (
+          <>
+            <button className="btn btn-primary" onClick={handleResume}>继续计时</button>
+            <button className="btn btn-outline" onClick={handleQuit}>放弃</button>
+            <button className="btn btn-outline" onClick={resetSelection}>重选任务</button>
+          </>
         ) : !isRunning ? (
-          <>{!isPaused ? <button className="btn btn-primary" onClick={handleStart}>开始专注</button>
-            : <><button className="btn btn-primary" onClick={handleResume}>继续</button><button className="btn btn-outline" onClick={handleQuit}>放弃</button></>}
-            <button className="btn btn-outline" onClick={() => { setSelectedTask(null); setElapsed(0); elapsedRef.current = 0 }}>重选任务</button></>
+          <>
+            <button className="btn btn-primary" onClick={handleStart}>开始计时</button>
+            <button className="btn btn-outline" onClick={resetSelection}>重选任务</button>
+          </>
         ) : (
-          <><button className="btn btn-primary" onClick={handlePause}>暂停</button><button className="btn btn-outline" onClick={handleQuit}>放弃</button></>
+          <>
+            <button className="btn btn-primary" onClick={handlePause}>暂停</button>
+            <button className="btn btn-outline" onClick={handleQuit}>放弃</button>
+          </>
         )}
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', marginTop: 16, lineHeight: 1.6 }}>
-        {timerMode === 'regular' ? '支持多次暂停，累计时长达标即可完成任务' : '番茄钟：25分钟专注 + 5分钟休息，4轮后休息15分钟'}
+        {timerMode === 'regular' ? '支持暂停和继续，累计时长达标即可完成任务' : '番茄钟：25分钟专注 + 5分钟休息，4轮后休息15分钟'}
       </p>
       {/* 任务选择弹窗 */}
       {showTaskPicker && (
@@ -165,8 +295,11 @@ export default function FocusTimer() {
             <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>选择要专注的任务</div>
             {todayTasksWithTimer.length === 0 ? <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 20 }}>今日没有待完成且设置计时的任务</div>
             : todayTasksWithTimer.map(task => (
-              <div key={task.id} className="list-item" onClick={() => { setSelectedTask(task); setElapsed(task.timerTotal || 0); elapsedRef.current = task.timerTotal || 0; setShowTaskPicker(false); setIsComplete(false) }}>
-                <div className="item-content"><div className="item-title">{task.name}</div><div className="item-sub">目标 {task.timerTarget}分钟</div></div>
+              <div key={task.id} className="list-item" onClick={() => pickTask(task)}>
+                <div className="item-content">
+                  <div className="item-title">{task.name}</div>
+                  <div className="item-sub">目标 {task.timerTarget}分钟{hasSessionFor(task.id) ? ' · 有计时记录' : ''}</div>
+                </div>
               </div>
             ))}
           </div>
