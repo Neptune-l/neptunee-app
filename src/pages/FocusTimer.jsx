@@ -51,6 +51,22 @@ export default function FocusTimer() {
   useEffect(() => { phaseRef.current = pomoPhase }, [pomoPhase])
   useEffect(() => { cycleRef.current = pomoCycle }, [pomoCycle])
 
+  // 显式开启新阶段：统一重置计时基准，杜绝上一阶段时长残留
+  const startPhase = (phase, cycle, base) => {
+    clearInterval(timerRef.current)
+    phaseRef.current = phase
+    cycleRef.current = cycle
+    elapsedRef.current = base
+    setPomoPhase(phase)
+    setPomoCycle(cycle)
+    setElapsed(base)
+    startTimeRef.current = Date.now()
+    setIsComplete(false)
+    setIsRunning(true)
+    setIsPaused(false)
+    saveSession(true, false)
+  }
+
   // 进入页面恢复上次会话（以暂停态展示，用户点“继续计时”）
   useEffect(() => {
     if (!loaded) return
@@ -75,25 +91,19 @@ export default function FocusTimer() {
 
   // 番茄钟阶段自动流转
   useEffect(() => {
-    if (timerMode === 'pomodoro' && isComplete && selectedTask) {
-      if (pomoPhase === 'work') {
-        const newCycle = pomoCycle + 1
+    if (timerMode !== 'pomodoro' || !isComplete || !selectedTask) return
+    if (phaseRef.current === 'work') {
+        const newCycle = cycleRef.current + 1
         if (newCycle >= 4) {
           showGlobalToast('🎉 已完成4个番茄！休息15分钟吧')
-          setPomoPhase('longBreak'); setElapsed(0); elapsedRef.current = 0; setPomoCycle(0)
-          setTimeout(() => handleStart(), 500)
+          startPhase('longBreak', 0, 0)
         } else {
           showGlobalToast('🍅 番茄完成！休息5分钟')
-          setPomoPhase('shortBreak'); setElapsed(0); elapsedRef.current = 0; setPomoCycle(newCycle)
-          setTimeout(() => handleStart(), 500)
+          startPhase('shortBreak', newCycle, 0)
         }
-        setIsComplete(false)
-      } else {
-        showGlobalToast('💪 休息结束，开始新的番茄！')
-        setPomoPhase('work'); setElapsed(0); elapsedRef.current = 0
-        setIsComplete(false)
-        setTimeout(() => handleStart(), 500)
-      }
+    } else {
+      showGlobalToast('💪 休息结束，开始新的番茄！')
+      startPhase('work', cycleRef.current, 0)
     }
   }, [isComplete])
 
