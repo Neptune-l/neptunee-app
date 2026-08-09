@@ -89,23 +89,45 @@ export default function FocusTimer() {
     } catch (e) { clearSession() }
   }, [loaded, tasks, clearSession])
 
-  // 番茄钟阶段自动流转
-  useEffect(() => {
-    if (timerMode !== 'pomodoro' || !isComplete || !selectedTask) return
+  // 番茄钟阶段推进：在完成那一刻同步调用，不走 effect，避免重复触发
+  const advancePomodoro = async () => {
     if (phaseRef.current === 'work') {
-        const newCycle = cycleRef.current + 1
-        if (newCycle >= 4) {
-          showGlobalToast('🎉 已完成4个番茄！休息15分钟吧')
-          startPhase('longBreak', 0, 0)
-        } else {
-          showGlobalToast('🍅 番茄完成！休息5分钟')
-          startPhase('shortBreak', newCycle, 0)
+      const focusSeconds = elapsedRef.current
+      if (selectedTask) {
+        const newTotal = (selectedTask.timerTotal || 0) + focusSeconds
+        const target = (selectedTask.timerTarget || 0) * 60
+        await addFocusDiary({ taskName: selectedTask.name, duration: focusSeconds, date: today })
+        if (target > 0 && newTotal >= target) {
+          const doneTask = { ...selectedTask, timerTotal: target, completed: true, completeTime: Date.now() }
+          await updateTask(doneTask)
+          clearSession()
+          setSelectedTask(null)
+          setElapsed(0); elapsedRef.current = 0
+          setIsRunning(false); setIsPaused(false); setIsComplete(false)
+          if (doneTask.linkedHabitId) {
+            const r = await checkHabit(doneTask.linkedHabitId, today)
+            showGlobalToast(r && !r.already ? '专注完成！习惯自动打卡 +' + r.delta + '分' : '🎉 番茄钟完成，任务已达标！')
+          } else {
+            showGlobalToast('🎉 番茄钟完成，任务已达标！')
+          }
+          return
         }
+        const updatedTask = { ...selectedTask, timerTotal: newTotal }
+        await updateTask(updatedTask)
+      }
+      const newCycle = cycleRef.current + 1
+      if (newCycle >= 4) {
+        showGlobalToast('🎉 已完成4个番茄！休息15分钟吧')
+        startPhase('longBreak', 0, 0)
+      } else {
+        showGlobalToast('🍅 番茄完成！休息5分钟')
+        startPhase('shortBreak', newCycle, 0)
+      }
     } else {
       showGlobalToast('💪 休息结束，开始新的番茄！')
       startPhase('work', cycleRef.current, 0)
     }
-  }, [isComplete])
+  }
 
   // 计时主循环
   useEffect(() => {
@@ -122,7 +144,7 @@ export default function FocusTimer() {
           if (timerMode === 'regular') {
             completeTimer()
           } else {
-            setIsRunning(false); setIsComplete(true)
+            advancePomodoro()
           }
         }
       }, 1000)
