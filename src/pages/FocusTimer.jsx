@@ -21,6 +21,9 @@ export default function FocusTimer() {
   const timerRef = useRef(null)
   const startTimeRef = useRef(null)
   const elapsedRef = useRef(0)
+  const modeRef = useRef('regular')
+  const phaseRef = useRef('work')
+  const cycleRef = useRef(0)
 
   const POMO_WORK = 25 * 60, POMO_SHORT = 5 * 60, POMO_LONG = 15 * 60
 
@@ -35,14 +38,18 @@ export default function FocusTimer() {
       : 0
     localStorage.setItem(SESSION_KEY, JSON.stringify({
       taskId: selectedTask.id,
-      mode: timerMode,
-      pomoPhase,
-      pomoCycle,
+      mode: modeRef.current,
+      pomoPhase: phaseRef.current,
+      pomoCycle: cycleRef.current,
       elapsed: elapsedRef.current + extra,
       isRunning: running,
       isPaused: paused,
     }))
-  }, [selectedTask, timerMode, pomoPhase, pomoCycle])
+  }, [selectedTask])
+
+  useEffect(() => { modeRef.current = timerMode }, [timerMode])
+  useEffect(() => { phaseRef.current = pomoPhase }, [pomoPhase])
+  useEffect(() => { cycleRef.current = pomoCycle }, [pomoCycle])
 
   // 进入页面恢复上次会话（以暂停态展示，用户点“继续计时”）
   useEffect(() => {
@@ -145,7 +152,6 @@ export default function FocusTimer() {
 
   const handleStart = () => {
     startTimeRef.current = Date.now()
-    elapsedRef.current = elapsed
     setIsRunning(true)
     setIsPaused(false)
     saveSession(true, false)
