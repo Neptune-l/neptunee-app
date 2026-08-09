@@ -58,12 +58,13 @@ export default function FocusTimer() {
   useEffect(() => {
     if (isRunning && !isPaused && selectedTask && !isComplete) {
       timerRef.current = setInterval(() => {
+        if (!startTimeRef.current) startTimeRef.current = Date.now()
         const extra = Math.floor((Date.now() - startTimeRef.current) / 1000)
         const total = elapsedRef.current + extra
         setElapsed(total)
-        elapsedRef.current = total
         const target = timerMode === 'regular' ? (selectedTask.timerTarget || 0) * 60 : (pomoPhase === 'work' ? POMO_WORK : pomoPhase === 'longBreak' ? POMO_LONG : POMO_SHORT)
         if (target > 0 && total >= target) {
+          elapsedRef.current = total
           clearInterval(timerRef.current)
           if (timerMode === 'regular') {
             completeTimer()
