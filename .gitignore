@@ -7,3 +7,4 @@ pic/
 preview/
 .workbuddy/
 *.log
+.npm-cache/
