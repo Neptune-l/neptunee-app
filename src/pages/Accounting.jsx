@@ -11,6 +11,7 @@ import CategoryBills from '../subpages/CategoryBills'
 import AssetsManage from '../subpages/AssetsManage'
 import SavingsEdit from '../subpages/SavingsEdit'
 import SavingsDetail from '../subpages/SavingsDetail'
+import { macaronKeyOf } from '../utils/palette'
 
 export default function Accounting({ openSubpage }) {
   const {
@@ -127,46 +128,48 @@ export default function Accounting({ openSubpage }) {
 
         {tab === 'daily' && (
           <>
-            {/* 汇总卡片 */}
-            <div className="summary-cards">
-              <div className="summary-card">
-                <div className="summary-value text-green">{fmtMoney(dayIncome)}</div>
-                <div className="summary-label">收入</div>
+            {/* 一行内联统计：原来三个大盒子占掉四分之一屏 */}
+            <div className="stat-inline">
+              <div className="si">
+                <div className="si-l">收入</div>
+                <div className="si-v text-green">{fmtMoney(dayIncome)}</div>
               </div>
-              <div className="summary-card">
-                <div className="summary-value text-red">{fmtMoney(dayExpense)}</div>
-                <div className="summary-label">支出</div>
+              <div className="si">
+                <div className="si-l">支出</div>
+                <div className="si-v text-red">{fmtMoney(dayExpense)}</div>
               </div>
-              <div className="summary-card">
-                <div className="summary-value">{fmtMoney(round2(dayIncome - dayExpense))}</div>
-                <div className="summary-label">结余</div>
+              <div className="si">
+                <div className="si-l">结余</div>
+                <div className="si-v">{fmtMoney(round2(dayIncome - dayExpense))}</div>
               </div>
             </div>
 
-            {/* 账单列表 */}
+            {/* 账单列表：一组一张卡，发丝线分隔 */}
             {dayBills.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">💰</div>
                 <div className="empty-text">当日还没有账单，点击右下角记一笔吧</div>
               </div>
             ) : (
-              [...dayBills].sort((a, b) => b.createTime - a.createTime).map(bill => {
-                const cat = getCategory(bill.categoryId)
-                return (
-                  <div key={bill.id} className="list-item" onClick={() => setEditingBill(bill)}>
-                    <div className="item-icon" style={{ background: `${cat?.color || '#F2B8C6'}33` }}>
-                      {cat?.emoji || '💰'}
+              <div className="card-list">
+                {[...dayBills].sort((a, b) => b.createTime - a.createTime).map((bill, idx) => {
+                  const cat = getCategory(bill.categoryId)
+                  return (
+                    <div key={bill.id} className="list-item compact" onClick={() => setEditingBill(bill)}>
+                      <div className="item-icon" data-mc={macaronKeyOf(cat?.color, idx)}>
+                        {cat?.emoji || '💰'}
+                      </div>
+                      <div className="item-content">
+                        <div className="item-title">{cat?.name || '未分类'}</div>
+                        {bill.remark && <div className="item-sub">{bill.remark}</div>}
+                      </div>
+                      <div className={`item-score ${bill.type === 'income' ? 'positive' : 'negative'}`}>
+                        {bill.type === 'income' ? '+' : '-'}{fmtMoney(bill.amount)}
+                      </div>
                     </div>
-                    <div className="item-content">
-                      <div className="item-title">{cat?.name || '未分类'}</div>
-                      {bill.remark && <div className="item-sub">{bill.remark}</div>}
-                    </div>
-                    <div className={`item-score ${bill.type === 'income' ? 'positive' : 'negative'}`}>
-                      {bill.type === 'income' ? '+' : '-'}{fmtMoney(bill.amount)}
-                    </div>
-                  </div>
-                )
-              })
+                  )
+                })}
+              </div>
             )}
           </>
         )}
@@ -174,18 +177,18 @@ export default function Accounting({ openSubpage }) {
         {tab === 'monthly' && (
           <>
             {/* 月度汇总 */}
-            <div className="summary-cards">
-              <div className="summary-card">
-                <div className="summary-value text-green">{fmtMoney(monthIncome)}</div>
-                <div className="summary-label">月收入</div>
+            <div className="stat-inline">
+              <div className="si">
+                <div className="si-l">月收入</div>
+                <div className="si-v text-green">{fmtMoney(monthIncome)}</div>
               </div>
-              <div className="summary-card">
-                <div className="summary-value text-red">{fmtMoney(monthExpense)}</div>
-                <div className="summary-label">月支出</div>
+              <div className="si">
+                <div className="si-l">月支出</div>
+                <div className="si-v text-red">{fmtMoney(monthExpense)}</div>
               </div>
-              <div className="summary-card">
-                <div className="summary-value">{fmtMoney(round2(monthIncome - monthExpense))}</div>
-                <div className="summary-label">月结余</div>
+              <div className="si">
+                <div className="si-l">月结余</div>
+                <div className="si-v">{fmtMoney(round2(monthIncome - monthExpense))}</div>
               </div>
             </div>
 
@@ -198,26 +201,28 @@ export default function Accounting({ openSubpage }) {
                 <div className="empty-text">本月暂无支出</div>
               </div>
             ) : (
-              monthCategorySummary.filter(s => s.expense > 0).map(s => {
-                const pct = monthExpense > 0 ? (s.expense / monthExpense * 100) : 0
-                return (
-                  <div key={s.catId} className="list-item" onClick={() => openSubpage(CategoryBills, { categoryId: s.catId, viewDate })}>
-                    <div className="item-icon" style={{ background: `${s.cat.color}33` }}>
-                      {s.cat.emoji}
-                    </div>
-                    <div className="item-content">
-                      <div className="item-title">{s.cat.name}</div>
-                      <div className="progress-bar" style={{ marginTop: 4 }}>
-                        <div className="progress-fill" style={{ width: `${pct}%`, background: s.cat.color }} />
+              <div className="card-list">
+                {monthCategorySummary.filter(s => s.expense > 0).map((s, idx) => {
+                  const pct = monthExpense > 0 ? (s.expense / monthExpense * 100) : 0
+                  return (
+                    <div key={s.catId} className="list-item compact" data-mc={macaronKeyOf(s.cat.color, idx)} onClick={() => openSubpage(CategoryBills, { categoryId: s.catId, viewDate })}>
+                      <div className="item-icon" data-mc={macaronKeyOf(s.cat.color, idx)}>
+                        {s.cat.emoji}
+                      </div>
+                      <div className="item-content">
+                        <div className="item-title">{s.cat.name}</div>
+                        <div className="progress-bar" style={{ marginTop: 5 }}>
+                          <div className="progress-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                      <div className="item-right" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+                        <div className="text-red" style={{ fontSize: 14, fontWeight: 500 }}>{fmtMoney(s.expense)}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{pct.toFixed(0)}%</div>
                       </div>
                     </div>
-                    <div className="item-right" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <div className="text-red" style={{ fontSize: 14, fontWeight: 500 }}>{fmtMoney(s.expense)}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{pct.toFixed(0)}%</div>
-                    </div>
-                  </div>
-                )
-              })
+                  )
+                })}
+              </div>
             )}
 
             <div className="section-header" style={{ marginTop: 16 }}>
@@ -228,26 +233,28 @@ export default function Accounting({ openSubpage }) {
                 <div className="empty-text">本月暂无收入</div>
               </div>
             ) : (
-              monthCategorySummary.filter(s => s.income > 0).map(s => {
-                const pct = monthIncome > 0 ? (s.income / monthIncome * 100) : 0
-                return (
-                  <div key={s.catId} className="list-item" onClick={() => openSubpage(CategoryBills, { categoryId: s.catId, viewDate })}>
-                    <div className="item-icon" style={{ background: `${s.cat.color}33` }}>
-                      {s.cat.emoji}
-                    </div>
-                    <div className="item-content">
-                      <div className="item-title">{s.cat.name}</div>
-                      <div className="progress-bar" style={{ marginTop: 4 }}>
-                        <div className="progress-fill" style={{ width: `${pct}%`, background: s.cat.color }} />
+              <div className="card-list">
+                {monthCategorySummary.filter(s => s.income > 0).map((s, idx) => {
+                  const pct = monthIncome > 0 ? (s.income / monthIncome * 100) : 0
+                  return (
+                    <div key={s.catId} className="list-item compact" data-mc={macaronKeyOf(s.cat.color, idx)} onClick={() => openSubpage(CategoryBills, { categoryId: s.catId, viewDate })}>
+                      <div className="item-icon" data-mc={macaronKeyOf(s.cat.color, idx)}>
+                        {s.cat.emoji}
+                      </div>
+                      <div className="item-content">
+                        <div className="item-title">{s.cat.name}</div>
+                        <div className="progress-bar" style={{ marginTop: 5 }}>
+                          <div className="progress-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                      <div className="item-right" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+                        <div className="text-green" style={{ fontSize: 14, fontWeight: 500 }}>{fmtMoney(s.income)}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{pct.toFixed(0)}%</div>
                       </div>
                     </div>
-                    <div className="item-right" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <div className="text-green" style={{ fontSize: 14, fontWeight: 500 }}>{fmtMoney(s.income)}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{pct.toFixed(0)}%</div>
-                    </div>
-                  </div>
-                )
-              })
+                  )
+                })}
+              </div>
             )}
           </>
         )}
@@ -276,7 +283,7 @@ export default function Accounting({ openSubpage }) {
               </div>
             ) : (
               <>
-                {sortedGoals.map(goal => {
+                {sortedGoals.map((goal, idx) => {
                   const saved = savingsByGoal[goal.id]?.saved || 0
                   const pct = goal.target > 0 ? Math.min(1, saved / goal.target) : 0
                   const remaining = round2(Math.max(0, goal.target - saved))
@@ -284,11 +291,12 @@ export default function Accounting({ openSubpage }) {
                   return (
                     <div
                       key={goal.id}
+                      data-mc={macaronKeyOf(goal.color, idx)}
                       className={`savings-card${done ? ' done' : ''}`}
                       onClick={() => openSubpage(SavingsDetail, { goalId: goal.id })}
                     >
                       <div className="savings-card-head">
-                        <div className="savings-card-emoji" style={{ background: `${goal.color}33` }}>{goal.emoji}</div>
+                        <div className="savings-card-emoji" data-mc={macaronKeyOf(goal.color, idx)}>{goal.emoji}</div>
                         <div className="savings-card-info">
                           <div className="savings-card-name">
                             {goal.name}
@@ -298,10 +306,10 @@ export default function Accounting({ openSubpage }) {
                             {fmtMoney(saved)} <span className="savings-card-target">/ {fmtMoney(goal.target)}</span>
                           </div>
                         </div>
-                        <div className="savings-card-pct" style={{ color: goal.color }}>{Math.round(pct * 100)}%</div>
+                        <div className="savings-card-pct" data-mc={macaronKeyOf(goal.color, idx)}>{Math.round(pct * 100)}%</div>
                       </div>
                       <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${pct * 100}%`, background: goal.color }} />
+                        <div className="progress-fill" style={{ width: `${pct * 100}%` }} />
                       </div>
                       <div className="savings-card-foot">
                         <span>{remaining > 0 ? `还差 ${fmtMoney(remaining)}` : '已达成目标 🎉'}</span>

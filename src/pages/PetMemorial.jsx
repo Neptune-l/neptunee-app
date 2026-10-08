@@ -23,7 +23,7 @@ export default function PetMemorial({ onClose }) {
           <div className="item-sub">{p.status === 'memorialized' ? '阵亡于 ' : '毕业于 '}{p.memorialAt ? new Date(p.memorialAt).toLocaleDateString() : p.graduateAt ? new Date(p.graduateAt).toLocaleDateString() : ''}</div>
         </div>
         <div className="item-right">
-          <span className="pet-state-chip" style={{ background: p.status === 'memorialized' ? '#8B817822' : '#F2B8C622', color: p.status === 'memorialized' ? '#8B8178' : '#C07A9A' }}>
+          <span className="pet-state-chip" style={{ background: p.status === 'memorialized' ? 'rgba(107,97,87,.14)' : 'var(--primary-soft)', color: p.status === 'memorialized' ? '#6B6157' : 'var(--primary-ink)' }}>
             {p.status === 'memorialized' ? '阵亡' : '已开智'}
           </span>
         </div>

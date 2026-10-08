@@ -31,7 +31,7 @@ export default function GoalDetail({ goal, onClose }) {
         <div className="card">
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>进度</div>
           <div className="progress-bar"><div className="progress-fill" style={{ width: goal.progressText ? '60%' : '0%' }} /></div>
-          <div style={{ marginTop: 8, color: 'var(--primary)', fontWeight: 500 }}>{goal.progressText || '暂无进度'}</div>
+          <div style={{ marginTop: 8, color: 'var(--primary-ink)', fontWeight: 500 }}>{goal.progressText || '暂无进度'}</div>
         </div>
       </div>
     </div>

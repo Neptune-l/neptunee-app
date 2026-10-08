@@ -286,7 +286,7 @@ export default function FocusTimer() {
         <svg width="280" height="280" viewBox="0 0 280 280">
           <circle cx="140" cy="140" r="120" fill="none" stroke="var(--border)" strokeWidth="12" />
           {selectedTask && <circle cx="140" cy="140" r="120" fill="none"
-            stroke={isComplete ? 'var(--success)' : timerMode === 'pomodoro' && pomoPhase === 'work' ? 'var(--danger)' : 'var(--primary)'}
+            style={{ stroke: isComplete ? 'var(--success)' : timerMode === 'pomodoro' && pomoPhase === 'work' ? 'var(--danger)' : 'var(--primary-ink)' }}
             strokeWidth="12" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} transform="rotate(-90 140 140)" style={{ transition: 'stroke-dashoffset 0.3s ease' }} />}
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>

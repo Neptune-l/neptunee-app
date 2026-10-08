@@ -240,7 +240,7 @@ export default function SavingsDetail({ goalId, onClose }) {
         ) : (
           bucket.records.map(rec => (
             <div key={rec.id} className="list-item">
-              <div className="item-icon" style={{ background: rec.type === 'in' ? 'rgba(184,226,208,0.28)' : 'rgba(244,172,172,0.24)' }}>
+              <div className="item-icon" style={{ background: rec.type === 'in' ? 'var(--success-soft)' : 'var(--danger-soft)' }}>
                 {rec.type === 'in' ? '⬇️' : '⬆️'}
               </div>
               <div className="item-content">

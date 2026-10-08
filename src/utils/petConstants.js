@@ -39,7 +39,7 @@ export const PET_SPECIES = {
     icon: catIcon,
     stages: [catStage1, catStage2, catStage3, catStage4, catStage5],
     states: { alive: catAlive, wither: catWither, weak: catWeak, dead: catDead },
-    accent: '#F2B8C6',
+    accent: '#FED9E5',
   },
   dog: {
     key: 'dog',
@@ -48,7 +48,7 @@ export const PET_SPECIES = {
     icon: dogIcon,
     stages: [dogStage1, dogStage2, dogStage3, dogStage4, dogStage5],
     states: { alive: dogAlive, wither: dogWither, weak: dogWeak, dead: dogDead },
-    accent: '#F8D2B8',
+    accent: '#FFD1BA',
   },
 }
 
@@ -70,10 +70,10 @@ export function getPetState(missedDays) {
 }
 
 export const PET_STATE_META = {
-  alive: { name: '安稳存活', mood: '明亮 · 微动', color: '#7BC5A0' },
-  wither: { name: '饥饿萎靡', mood: '第一天偷懒', color: '#E8B36B' },
-  weak: { name: '日渐虚弱', mood: '强预警 · 最委屈', color: '#D08A7C' },
-  dead: { name: '沉寂', mood: '主人我好像有点死了...', color: '#8B8178' },
+  alive: { name: '安稳存活', mood: '明亮 · 微动', color: '#1B7A65' },
+  wither: { name: '饥饿萎靡', mood: '第一天偷懒', color: '#9A6212' },
+  weak: { name: '日渐虚弱', mood: '强预警 · 最委屈', color: '#AE4343' },
+  dead: { name: '沉寂', mood: '主人我好像有点死了...', color: '#6B6157' },
 }
 
 export const PET_MARKET_ITEMS = [

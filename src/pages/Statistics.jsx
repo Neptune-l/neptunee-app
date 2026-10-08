@@ -4,6 +4,7 @@ import { getToday, getRecentDates, getMonthRange, formatDate, parseCheckKey, CHE
 import { buildScoreLedger, buildScoreTrend } from '../utils/score'
 import { getAll, getGlobal } from '../store/db'
 import { fmtMoney, fmtMoneyShort } from '../utils/money'
+import { macaronByIndex, macaronKeyOf } from '../utils/palette'
 
 /* ===== 工具 ===== */
 
@@ -25,6 +26,26 @@ function cssVar(el, name, fallback) {
   if (!el || typeof window === 'undefined') return fallback
   const v = getComputedStyle(el).getPropertyValue(name).trim()
   return v || fallback
+}
+
+/** 给颜色加透明度。CSS 变量取出来可能是 #RRGGBB 或 rgb()/rgba()，两种都要认 */
+function alpha(color, a) {
+  const s = String(color || '').trim()
+  if (s.startsWith('#')) {
+    let h = s.slice(1)
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]
+    if (h.length !== 6) return `rgba(14,124,140,${a})`
+    const r = parseInt(h.slice(0, 2), 16)
+    const g = parseInt(h.slice(2, 4), 16)
+    const b = parseInt(h.slice(4, 6), 16)
+    return `rgba(${r},${g},${b},${a})`
+  }
+  const m = s.match(/rgba?\(([^)]+)\)/)
+  if (m) {
+    const p = m[1].split(',').map(x => parseFloat(x))
+    return `rgba(${p[0]},${p[1]},${p[2]},${a})`
+  }
+  return s
 }
 
 /** 把 canvas 按 DPR 初始化，返回 { ctx, w, h }；尺寸为 0 时返回 null */
@@ -52,7 +73,7 @@ function pickTicks(len, max = 5) {
 }
 
 /* ===== 折线图 ===== */
-function LineChart({ data, color, themeKey }) {
+function LineChart({ data, themeKey }) {
   const ref = useRef(null)
   useEffect(() => {
     const c = ref.current
@@ -61,8 +82,11 @@ function LineChart({ data, color, themeKey }) {
     if (!box) return
     const { ctx, w, h } = box
 
-    const muted = cssVar(c, '--text-secondary', '#8C8288')
-    const border = cssVar(c, '--border', '#F0E8EA')
+    const muted = cssVar(c, '--text-secondary', '#5A7A83')
+    const border = cssVar(c, '--border', '#DEEBEF')
+    // 折线是「线」，必须用深同伴；面积仍用品牌亮青，深线 + 浅晕
+    const line = cssVar(c, '--primary-ink', '#0E7C8C')
+    const area = cssVar(c, '--primary', '#6AE6FA')
     const pad = { top: 16, bottom: 22, left: 36, right: 10 }
     const cw = w - pad.left - pad.right
     const ch = h - pad.top - pad.bottom
@@ -93,8 +117,8 @@ function LineChart({ data, color, themeKey }) {
 
     // 面积
     const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch)
-    grad.addColorStop(0, color + '80')
-    grad.addColorStop(1, color + '10')
+    grad.addColorStop(0, alpha(area, 0.5))
+    grad.addColorStop(1, alpha(area, 0.06))
     ctx.beginPath()
     ctx.moveTo(X(0), pad.top + ch)
     data.forEach((d, i) => ctx.lineTo(X(i), Y(d.value)))
@@ -106,14 +130,14 @@ function LineChart({ data, color, themeKey }) {
     // 折线
     ctx.beginPath()
     data.forEach((d, i) => (i === 0 ? ctx.moveTo(X(i), Y(d.value)) : ctx.lineTo(X(i), Y(d.value))))
-    ctx.strokeStyle = color
+    ctx.strokeStyle = line
     ctx.lineWidth = 2.5
     ctx.lineJoin = 'round'
     ctx.stroke()
 
     // 只在数据点较少时画圆点，避免糊成一片
     if (data.length <= 32) {
-      ctx.fillStyle = color
+      ctx.fillStyle = line
       data.forEach((d, i) => {
         ctx.beginPath()
         ctx.arc(X(i), Y(d.value), 2.5, 0, Math.PI * 2)
@@ -130,7 +154,7 @@ function LineChart({ data, color, themeKey }) {
       if (!ticks.has(i)) return
       ctx.fillText((d.label || '').slice(5), X(i), pad.top + ch + 6)
     })
-  }, [data, color, themeKey])
+  }, [data, themeKey])
   return <canvas ref={ref} style={{ width: '100%', height: 180, display: 'block' }} />
 }
 
@@ -149,12 +173,12 @@ function Donut({ data, total, themeKey }) {
       ctx.beginPath()
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
       ctx.arc(cx, cy, ir, 0, Math.PI * 2, true)
-      ctx.fillStyle = cssVar(c, '--border', '#F0E8EA')
+      ctx.fillStyle = cssVar(c, '--sunk', '#E9F3F6')
       ctx.fill()
       return
     }
 
-    const cs = ['#F2B8C6', '#F8D2B8', '#B8E2D0', '#C4D7F0', '#DCC2F0', '#FCE4BA', '#F4ACAC', '#E8D0B8']
+    // 扇区用马卡龙浅色填充（浅色只做填充），两种主题下都是中等明度、分得开
     let sa = -Math.PI / 2
     data.forEach((d, i) => {
       const a = (d.value / total) * Math.PI * 2
@@ -162,7 +186,7 @@ function Donut({ data, total, themeKey }) {
       ctx.arc(cx, cy, r, sa, sa + a)
       ctx.arc(cx, cy, ir, sa + a, sa, true)
       ctx.closePath()
-      ctx.fillStyle = cs[i % cs.length]
+      ctx.fillStyle = macaronByIndex(i).fill
       ctx.fill()
       sa += a
     })
@@ -179,7 +203,10 @@ function WeekBar({ data, themeKey }) {
     const box = setupCanvas(c, 0, 160)
     if (!box) return
     const { ctx, w, h } = box
-    const muted = cssVar(c, '--text-secondary', '#8C8288')
+    const muted = cssVar(c, '--text-secondary', '#5A7A83')
+    // 收支柱固定语义色（收=绿 / 支=红），两种主题各取一套
+    const cExpense = cssVar(c, '--danger', '#A8324C')
+    const cIncome = cssVar(c, '--success', '#0B6E5E')
     const pad = { top: 10, bottom: 24, left: 8, right: 8 }
     const cw = w - pad.left - pad.right
     const ch = h - pad.top - pad.bottom
@@ -192,12 +219,12 @@ function WeekBar({ data, themeKey }) {
       const x = pad.left + gap + i * (bw + gap)
       if (d.expense > 0) {
         const bh = (d.expense / max) * ch
-        ctx.fillStyle = '#F4ACAC'
+        ctx.fillStyle = cExpense
         ctx.fillRect(x, pad.top + ch - bh, half, bh)
       }
       if (d.income > 0) {
         const bh = (d.income / max) * ch
-        ctx.fillStyle = '#B8E2D0'
+        ctx.fillStyle = cIncome
         ctx.fillRect(x + half + 4, pad.top + ch - bh, half, bh)
       }
       ctx.fillStyle = muted
@@ -224,10 +251,12 @@ function HabitGrid({ checkData, monthDates, themeKey }) {
     if (!box) return
     const { ctx } = box
 
-    const muted = cssVar(c, '--text-secondary', '#8C8288')
-    const strong = cssVar(c, '--text-primary', '#443E46')
-    const empty = cssVar(c, '--border', '#F0E8EA')
-    const filled = cssVar(c, '--primary', '#F2B8C6')
+    const muted = cssVar(c, '--text-secondary', '#5A7A83')
+    const strong = cssVar(c, '--text-primary', '#0F3038')
+    const empty = cssVar(c, '--sunk', '#E9F3F6')
+    // 已打卡格是「填充 + 白字」，必须用深同伴，否则浅青上的字看不见
+    const filled = cssVar(c, '--primary-ink', '#0E7C8C')
+    const onFilled = cssVar(c, '--card-bg', '#FFFFFF')
 
     const weekDays = ['日', '一', '二', '三', '四', '五', '六']
     ctx.fillStyle = muted
@@ -252,7 +281,7 @@ function HabitGrid({ checkData, monthDates, themeKey }) {
         ctx.strokeRect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1)
       }
 
-      ctx.fillStyle = checked ? '#FFFFFF' : muted
+      ctx.fillStyle = checked ? onFilled : muted
       ctx.font = '9px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
@@ -398,7 +427,7 @@ export default function Statistics() {
           <div className="empty-state" style={{ padding: 16 }}><div className="empty-text">数据积累后显示</div></div>
         ) : (
           <>
-            <LineChart data={scoreTrend} color="#F2B8C6" themeKey={theme} />
+            <LineChart data={scoreTrend} themeKey={theme} />
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>
               由打卡与兑换记录反推的累计净积分
             </div>
@@ -418,7 +447,7 @@ export default function Statistics() {
                 <span key={d.label} style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <i style={{
                     width: 8, height: 8, borderRadius: 2, display: 'inline-block',
-                    background: ['#F2B8C6', '#F8D2B8', '#B8E2D0', '#C4D7F0', '#DCC2F0', '#FCE4BA', '#F4ACAC', '#E8D0B8'][i % 8],
+                    background: macaronByIndex(i).fill,
                   }} />
                   {d.label}
                 </span>
@@ -436,8 +465,8 @@ export default function Statistics() {
           <>
             <WeekBar data={monthBars} themeKey={theme} />
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 6, fontSize: 11, color: 'var(--text-secondary)' }}>
-              <span><i style={{ width: 8, height: 8, borderRadius: 2, background: '#F4ACAC', display: 'inline-block', marginRight: 4 }} />支出</span>
-              <span><i style={{ width: 8, height: 8, borderRadius: 2, background: '#B8E2D0', display: 'inline-block', marginRight: 4 }} />收入</span>
+              <span><i style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--danger)', display: 'inline-block', marginRight: 4 }} />支出</span>
+              <span><i style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--success)', display: 'inline-block', marginRight: 4 }} />收入</span>
             </div>
           </>
         )}
@@ -454,22 +483,22 @@ export default function Statistics() {
               <span className="pot-total-label">目标合计 {fmtMoney(potStat.target)}</span>
             </div>
             <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${potStat.pct * 100}%`, background: 'var(--primary)' }} />
+              <div className="progress-fill" style={{ width: `${potStat.pct * 100}%` }} />
             </div>
             <div className="pot-list">
-              {savingsGoals.map(g => {
+              {savingsGoals.map((g, idx) => {
                 const saved = savingsByGoal[g.id]?.saved || 0
                 const pct = g.target > 0 ? Math.min(1, saved / g.target) : 0
                 return (
-                  <div key={g.id} className="pot-row">
-                    <div className="pot-row-emoji" style={{ background: `${g.color}33` }}>{g.emoji}</div>
+                  <div key={g.id} className="pot-row" data-mc={macaronKeyOf(g.color, idx)}>
+                    <div className="pot-row-emoji" data-mc={macaronKeyOf(g.color, idx)}>{g.emoji}</div>
                     <div className="pot-row-body">
                       <div className="pot-row-head">
                         <span className="pot-row-name">{g.name}</span>
                         <span className="pot-row-amount">{g.status === 'done' ? '已达成' : `${Math.round(pct * 100)}%`}</span>
                       </div>
                       <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${pct * 100}%`, background: g.color }} />
+                        <div className="progress-fill" style={{ width: `${pct * 100}%` }} />
                       </div>
                     </div>
                   </div>
@@ -484,7 +513,7 @@ export default function Statistics() {
         <div className="chart-title">本月打卡日历</div>
         <HabitGrid checkData={checkData} monthDates={monthDates} themeKey={theme} />
         <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, textAlign: 'center' }}>
-          红色格 = 当天至少完成一项正向习惯
+          深色格 = 当天至少完成一项正向习惯
         </div>
       </div>
     </div>

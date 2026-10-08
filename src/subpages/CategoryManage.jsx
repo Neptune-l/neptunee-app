@@ -4,6 +4,7 @@ import EmojiPicker from '../components/EmojiPicker'
 import ColorPicker from '../components/ColorPicker'
 import ConfirmModal from '../components/ConfirmModal'
 import { DEFAULT_EMOJI, DEFAULT_COLOR } from '../utils/constants'
+import { macaronKeyOf } from '../utils/palette'
 
 export default function CategoryManage({ onClose }) {
   const { categories, addCategory, updateCategory, deleteCategory } = useApp()
@@ -89,9 +90,9 @@ export default function CategoryManage({ onClose }) {
             <div className="empty-text">暂无分类，在上方添加吧</div>
           </div>
         ) : (
-          filteredCats.map(cat => (
+          filteredCats.map((cat, idx) => (
             <div key={cat.id} className="list-item" onClick={() => startEdit(cat)}>
-              <div className="item-icon" style={{ background: `${cat.color}33` }}>{cat.emoji}</div>
+              <div className="item-icon" data-mc={macaronKeyOf(cat.color, idx)}>{cat.emoji}</div>
               <div className="item-content">
                 <div className="item-title">{cat.name}</div>
               </div>

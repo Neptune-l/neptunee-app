@@ -5,6 +5,7 @@ import { getAll } from '../store/db'
 import CalendarModal from '../components/CalendarModal'
 import ConfirmModal from '../components/ConfirmModal'
 import HabitEdit from '../subpages/HabitEdit'
+import { macaronKeyOf } from '../utils/palette'
 
 export default function HabitCheckPage({ openSubpage }) {
   const { loaded, habits, totalScore, viewDate, setViewDate, checkHabit, uncheckHabit, getHabitStatus } = useApp()
@@ -145,17 +146,17 @@ export default function HabitCheckPage({ openSubpage }) {
             <div className="empty-text">{habitTab === 'positive' ? '今天没有需要打卡的习惯' : '还没有克制习惯'}</div>
           </div>
         ) : (
-          filteredHabits.map(habit => {
+          filteredHabits.map((habit, i) => {
             const status = habitStatuses[habit.id]; const isChecked = status?.checked; const rc = status?.count || 0
             let freqLabel = '每天'
             if (habit.frequency) { if (habit.frequency.type === 'weekly') freqLabel = '每周' + (habit.frequency.days?.length || 0) + '次'; else if (habit.frequency.type === 'biweekly') freqLabel = '每' + (habit.frequency.interval || 2) + '周' + (habit.frequency.days?.length || 1) + '次'; else if (habit.frequency.type === 'monthly') freqLabel = '每月打卡' }
             return (
-              <div key={habit.id} className="list-item" style={{ opacity: isChecked ? 0.7 : 1, cursor: 'pointer' }}
+              <div key={habit.id} className="list-item" style={{ background: isChecked ? 'var(--m-fill)' : undefined, borderColor: isChecked ? 'var(--m-ink)' : undefined, cursor: 'pointer' }}
                 onClick={() => handleTap(habit)}
                 onContextMenu={(e) => { e.preventDefault(); longPressed.current = false; handleLongPress(habit) }}
                 onTouchStart={() => { longPressed.current = false; longPressTimer.current = setTimeout(() => { longPressed.current = true; handleLongPress(habit) }, 600) }}
                 onTouchEnd={cancelLongPress} onTouchMove={cancelLongPress} onTouchCancel={cancelLongPress}>
-                <div className="item-icon" style={{ background: (habit.color || '#F2B8C6') + '33' }}>{habit.emoji || (habit.type === 'positive' ? '💪' : '🛡️')}</div>
+                <div className="item-icon" data-mc={macaronKeyOf(habit.color, i)}>{habit.emoji || (habit.type === 'positive' ? '💪' : '🛡️')}</div>
                 <div className="item-content"><div className="item-title">{habit.name}</div>
                   <div className="item-sub">{habit.type === 'positive' ? '+' + (habit.score || 5) + '分 · ' + freqLabel : '-' + (habit.score || 3) + '分'}</div>
                 </div>

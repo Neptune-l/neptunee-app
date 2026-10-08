@@ -37,7 +37,7 @@ export default function DietRecordList({ onClose }) {
         {viewDate === getToday() && (
           <div className="card" style={{ marginBottom: 12, textAlign: 'center' }}>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>今日总热量</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)' }}>{totalCal} kcal</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary-ink)' }}>{totalCal} kcal</div>
           </div>
         )}
 

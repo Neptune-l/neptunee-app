@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react'
 import { showGlobalToast } from '../store/store'
 import { MAX_PICKER_OPTIONS } from '../utils/constants'
 import ConfirmModal from '../components/ConfirmModal'
+import { MACARON_KEYS, MACARON } from '../utils/palette'
 
-const COLORS = ['#F2B8C6','#F8D2B8','#FCE4BA','#B8E2D0','#C4D7F0','#DCC2F0','#F4ACAC','#FAC8CD','#F5D5C5','#FFF0C5','#B8E0D0','#C8E0E8','#D8C8E8','#E8C0C8','#E8D0B8','#C8D8B8','#B8D0E8','#E0B8D0','#F0D0B8','#D0E0B8']
+// 转盘扇区用马卡龙填充；文字压在浅色扇区上，所以用固定的深色字，两种主题都读得清
+const COLORS = MACARON_KEYS.map(k => MACARON[k].fill)
+const WHEEL_INK = '#0F3038'
 
 function loadScenarios() {
   try { return JSON.parse(localStorage.getItem('pickerScenarios') || '[]') }
@@ -89,14 +92,14 @@ function ScenarioEditor({ scenario, onBack, onUpdate }) {
       const a = rot + i * sa
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, a, a + sa); ctx.closePath()
       ctx.fillStyle = COLORS[i % COLORS.length]; ctx.fill()
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke()
+      ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1; ctx.stroke()
       const ta = a + sa / 2
       ctx.save(); ctx.translate(cx + Math.cos(ta) * r * 0.65, cy + Math.sin(ta) * r * 0.65); ctx.rotate(ta)
-      ctx.fillStyle = '#443E46'; ctx.font = '12px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(opt, 0, 4)
+      ctx.fillStyle = WHEEL_INK; ctx.font = '12px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(opt, 0, 4)
       ctx.restore()
     })
     ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI * 2)
-    ctx.fillStyle = '#FFF7F4'; ctx.fill(); ctx.strokeStyle = '#F2B8C6'; ctx.lineWidth = 2; ctx.stroke()
+    ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.strokeStyle = '#0E7C8C'; ctx.lineWidth = 2; ctx.stroke()
   }
 
   const handleSpin = () => {

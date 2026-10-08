@@ -106,7 +106,7 @@ export default function WishEdit({ onClose }) {
             ) : (
               availableWishes.map(wish => (
                 <div key={wish.id} className="list-item" onClick={() => startEdit(wish)}>
-                  <div className="item-icon" style={{ background: 'rgba(242,184,198,0.2)' }}>{wish.emoji || '🎁'}</div>
+                  <div className="item-icon" style={{ background: 'var(--primary-soft)' }}>{wish.emoji || '🎁'}</div>
                   <div className="item-content">
                     <div className="item-title">{wish.name}</div>
                     <div className="item-sub">需要 {wish.cost} 积分</div>
@@ -137,7 +137,7 @@ export default function WishEdit({ onClose }) {
             ) : (
               exchangedWishes.map(wish => (
                 <div key={wish.id} className="list-item completed">
-                  <div className="item-icon" style={{ background: 'rgba(184,226,208,0.2)' }}>{wish.emoji || '🎁'}</div>
+                  <div className="item-icon" style={{ background: 'var(--success-soft)' }}>{wish.emoji || '🎁'}</div>
                   <div className="item-content">
                     <div className="item-title" style={{ textDecoration: 'line-through' }}>{wish.name}</div>
                     <div className="item-sub">已兑换</div>

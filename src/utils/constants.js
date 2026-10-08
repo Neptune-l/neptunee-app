@@ -1,29 +1,20 @@
-// 颜色常量 - 20个暖调马卡龙色
+// 颜色常量 —— 10 组马卡龙填充色（真正的深同伴由 utils/palette.js 配对）
+// 顺序与 palette.js 的 MACARON_KEYS 一致，改这里也要同步改那边
 export const MACARON_COLORS = [
-  '#F2B8C6', // 柔粉
-  '#F8D2B8', // 蜜桃橙
-  '#FCE4BA', // 浅黄
-  '#B8E2D0', // 薄荷绿
-  '#C4D7F0', // 天蓝
-  '#DCC2F0', // 淡紫
-  '#F4ACAC', // 豆沙红
-  '#FAC8CD', // 粉红
-  '#F5D5C5', // 杏色
-  '#FFF0C5', // 奶油黄
-  '#B8E0D0', // 浅绿
-  '#C8E0E8', // 青蓝
-  '#D8C8E8', // 紫罗兰
-  '#E8C0C8', // 玫瑰粉
-  '#E8D0B8', // 浅棕
-  '#C8D8B8', // 草绿
-  '#B8D0E8', // 雾蓝
-  '#E0B8D0', // 紫粉
-  '#F0D0B8', // 橘色
-  '#D0E0B8', // 嫩绿
+  '#FED9E5', // rose   粉
+  '#FFD1BA', // peach  蜜桃
+  '#FFF5D1', // butter 奶油
+  '#C3EDE2', // mint   薄荷
+  '#B7DDA4', // sage   鼠尾草
+  '#CADCF4', // sky    淡蓝
+  '#D5BDF1', // lilac  淡紫
+  '#A2C1EC', // peri   中蓝
+  '#FED5D5', // coral  珊瑚
+  '#FEB5BE', // pink   玫粉
 ]
 
 // 默认颜色
-export const DEFAULT_COLOR = '#F2B8C6'
+export const DEFAULT_COLOR = '#FED9E5'
 export const DEFAULT_EMOJI = '💪'
 
 // 存储键名
@@ -75,16 +66,17 @@ export const FORGET_DAYS_WARN = 3
 export const FORGET_DAYS_CRITICAL = 7
 
 // 默认分类（首次启动时写入；已有数据不会被覆盖）
+// color 只存浅色填充，深同伴由 palette.js 配对
 export const DEFAULT_CATEGORIES = [
-  { name: '餐饮', emoji: '🍜', color: '#F2B8C6', type: 'expense' },
-  { name: '交通', emoji: '🚗', color: '#F8D2B8', type: 'expense' },
-  { name: '购物', emoji: '🛍️', color: '#FCE4BA', type: 'expense' },
-  { name: '居住', emoji: '🏠', color: '#C4D7F0', type: 'expense' },
-  { name: '娱乐', emoji: '🎮', color: '#DCC2F0', type: 'expense' },
-  { name: '医疗', emoji: '💊', color: '#B8E2D0', type: 'expense' },
-  { name: '工资', emoji: '💰', color: '#B8E2D0', type: 'income' },
-  { name: '兼职', emoji: '🧾', color: '#C4D7F0', type: 'income' },
-  { name: '红包', emoji: '🧧', color: '#F4ACAC', type: 'income' },
+  { name: '餐饮', emoji: '🍜', color: '#FED9E5', type: 'expense' },
+  { name: '交通', emoji: '🚗', color: '#CADCF4', type: 'expense' },
+  { name: '购物', emoji: '🛍️', color: '#D5BDF1', type: 'expense' },
+  { name: '居住', emoji: '🏠', color: '#A2C1EC', type: 'expense' },
+  { name: '娱乐', emoji: '🎮', color: '#FFD1BA', type: 'expense' },
+  { name: '医疗', emoji: '💊', color: '#C3EDE2', type: 'expense' },
+  { name: '工资', emoji: '💰', color: '#B7DDA4', type: 'income' },
+  { name: '兼职', emoji: '🧾', color: '#FFF5D1', type: 'income' },
+  { name: '红包', emoji: '🧧', color: '#FED5D5', type: 'income' },
 ]
 
 // 餐段选项

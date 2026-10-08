@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
 import ConfirmModal from '../components/ConfirmModal'
+import { macaronKeyOf } from '../utils/palette'
 
 export default function BillDetail({ bill, onClose }) {
   const { updateBill, deleteBill, categories } = useApp()
@@ -74,10 +75,11 @@ export default function BillDetail({ bill, onClose }) {
               </div>
             ) : (
               <div className="cat-chips" style={{ marginBottom: 14 }}>
-                {filteredCats.map(cat => (
+                {filteredCats.map((cat, idx) => (
                   <button
                     key={cat.id}
                     type="button"
+                    data-mc={macaronKeyOf(cat.color, idx)}
                     className={`cat-chip${categoryId === cat.id ? ' selected' : ''}`}
                     aria-pressed={categoryId === cat.id}
                     onClick={() => setCategoryId(cat.id)}

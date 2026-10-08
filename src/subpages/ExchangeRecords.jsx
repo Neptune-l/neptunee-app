@@ -20,7 +20,7 @@ export default function ExchangeRecords({ onClose }) {
         ) : (
           sorted.map(record => (
             <div key={record.id} className="list-item">
-              <div className="item-icon" style={{ background: 'rgba(242,184,198,0.2)' }}>🎁</div>
+              <div className="item-icon" style={{ background: 'var(--primary-soft)' }}>🎁</div>
               <div className="item-content">
                 <div className="item-title">{record.wishName}</div>
                 <div className="item-sub">{new Date(record.time).toLocaleDateString()}</div>

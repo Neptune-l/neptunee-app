@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
 import { getToday } from '../utils/date'
+import { macaronKeyOf } from '../utils/palette'
 
 export default function BillNew({ onClose }) {
   const { addBill, categories } = useApp()
@@ -90,10 +91,11 @@ export default function BillNew({ onClose }) {
             </div>
           ) : (
             <div className="cat-chips" style={{ marginBottom: 14 }}>
-              {filteredCats.map(cat => (
+              {filteredCats.map((cat, idx) => (
                 <button
                   key={cat.id}
                   type="button"
+                  data-mc={macaronKeyOf(cat.color, idx)}
                   className={`cat-chip${categoryId === cat.id ? ' selected' : ''}`}
                   aria-pressed={categoryId === cat.id}
                   onClick={() => setCategoryId(cat.id)}
@@ -127,12 +129,12 @@ export default function BillNew({ onClose }) {
           {/* 数字键盘 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
-              <button key={n} className="btn" style={{ height: 46, fontSize: 21, background: 'var(--border)', borderRadius: 'var(--radius-btn)' }}
+              <button key={n} className="btn" style={{ height: 46, fontSize: 21, background: 'var(--sunk)', borderRadius: 'var(--radius-btn)' }}
                 onClick={() => handleNumberClick(n)}>
                 {n}
               </button>
             ))}
-            <button className="btn" style={{ height: 46, fontSize: 17, background: 'var(--danger)', color: 'white', borderRadius: 'var(--radius-btn)' }}
+            <button className="btn" style={{ height: 46, fontSize: 17, background: 'var(--danger)', color: '#FFFFFF', borderRadius: 'var(--radius-btn)' }}
               onClick={handleDelete}>
               删除
             </button>

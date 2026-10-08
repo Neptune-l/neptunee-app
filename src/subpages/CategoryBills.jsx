@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useApp } from '../store/store'
 import { getMonthRange } from '../utils/date'
 import BillDetail from './BillDetail'
+import { macaronKeyOf } from '../utils/palette'
 
 export default function CategoryBills({ categoryId, viewDate, onClose }) {
   const { bills, categories } = useApp()
@@ -41,7 +42,7 @@ export default function CategoryBills({ categoryId, viewDate, onClose }) {
 
         <div className="card" style={{ marginTop: 12, marginBottom: 12, textAlign: 'center' }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>总金额</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)' }}>{fmtMoney(totalAmount)}</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary-ink)' }}>{fmtMoney(totalAmount)}</div>
         </div>
 
         {filteredBills.length === 0 ? (
@@ -52,7 +53,7 @@ export default function CategoryBills({ categoryId, viewDate, onClose }) {
         ) : (
           filteredBills.map(bill => (
             <div key={bill.id} className="list-item" onClick={() => setEditingBill(bill)}>
-              <div className="item-icon" style={{ background: `${cat?.color || '#F2B8C6'}33` }}>
+              <div className="item-icon" data-mc={macaronKeyOf(cat?.color, 0)}>
                 {cat?.emoji || '💰'}
               </div>
               <div className="item-content">

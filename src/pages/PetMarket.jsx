@@ -34,7 +34,7 @@ export default function PetMarket({ onClose }) {
               <div className="item-content">
                 <div className="item-title">{item.name}{item.species === 'cat' ? '（猫）' : item.species === 'dog' ? '（犬）' : ''}</div>
                 <div className="item-sub">{item.desc}</div>
-                <div className="item-sub" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                <div className="item-sub" style={{ color: 'var(--primary-ink)', fontWeight: 600 }}>
                   <img src={PET_ITEM_ICON.ration} alt="口粮" className="wallet-ico" style={{ width: 14, height: 14 }} /> {item.price}
                 </div>
               </div>

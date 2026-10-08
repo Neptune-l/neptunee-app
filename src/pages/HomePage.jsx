@@ -8,6 +8,7 @@ import TaskEdit from '../subpages/TaskEdit'
 import AssetsManage from '../subpages/AssetsManage'
 import { PET_SPECIES, PET_STATE_META } from '../utils/petConstants'
 import { computePetView } from '../utils/petLogic'
+import { macaronKeyOf } from '../utils/palette'
 
 /** 在 YYYY-MM-DD 上加减天数（本地时区，避免 UTC 偏移） */
 function shiftDay(dateStr, delta) {
@@ -248,19 +249,19 @@ export default function HomePage({ openSubpage }) {
             <div className="empty-state"><div className="empty-icon">🎉</div><div className="empty-text">今天的习惯全部打卡完成！</div></div>
           ) : habitLayout === 'list' ? (
             <div className="card-list">
-              {visibleHabits.map(habit => {
+              {visibleHabits.map((habit, i) => {
                 const done = habitStatuses[habit.id]?.checked
                 const streak = getHabitStreak(habit.id, viewDate)
                 return (
                   <div key={habit.id} className="list-item compact" onClick={() => handleHabitTap(habit)}>
-                    <div className="item-icon" style={{ background: (habit.color || '#F2B8C6') + '33' }}>{habit.emoji || '💪'}</div>
+                    <div className="item-icon" data-mc={macaronKeyOf(habit.color, i)}>{habit.emoji || '💪'}</div>
                     <div className="item-content">
                       <div className="item-title">
                         {habit.name}
                         {streak >= 2 && <span className="item-streak">🔥{streak}</span>}
                       </div>
                     </div>
-                    <div className="item-right"><span style={{ color: 'var(--primary)', fontWeight: 600 }}>+{habit.score || 5}</span></div>
+                    <div className="item-right"><span className="habit-score">+{habit.score || 5}</span></div>
                     <div className={'checkbox-round' + (done ? ' checked' : '')} />
                   </div>
                 )
@@ -268,13 +269,14 @@ export default function HomePage({ openSubpage }) {
             </div>
           ) : (
             <div className="habit-grid">
-              {visibleHabits.map(habit => {
+              {visibleHabits.map((habit, i) => {
                 const done = !!habitStatuses[habit.id]?.checked
                 const streak = getHabitStreak(habit.id, viewDate)
                 return (
                   <button
                     key={habit.id}
                     type="button"
+                    data-mc={macaronKeyOf(habit.color, i)}
                     className={'habit-cell' + (done ? ' done' : '')}
                     aria-pressed={done}
                     aria-label={done ? `取消打卡：${habit.name}` : `打卡：${habit.name}`}

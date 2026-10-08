@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
 import { fmtMoney, round2, parseAmount } from '../utils/money'
 import { SAVINGS_EMOJIS, MACARON_COLORS, DEFAULT_SAVINGS_EMOJI, DEFAULT_COLOR } from '../utils/constants'
+import { macaronKeyOf } from '../utils/palette'
 
 /**
  * 新建 / 编辑存钱目标
@@ -55,7 +56,7 @@ export default function SavingsEdit({ goal, onClose }) {
 
       <div className="subpage-body">
         {/* 预览 */}
-        <div className="savings-preview" style={{ background: `${color}33` }}>
+        <div className="savings-preview" data-mc={macaronKeyOf(color, 0)}>
           <div className="savings-preview-emoji" style={{ borderColor: color }}>{emoji}</div>
           <div>
             <div className="savings-preview-name">{name.trim() || '存钱计划'}</div>

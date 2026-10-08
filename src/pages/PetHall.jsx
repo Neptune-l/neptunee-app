@@ -7,6 +7,7 @@ import PetHome from './PetHome'
 import PetMarket from './PetMarket'
 import PetMemorial from './PetMemorial'
 import PetNew from '../subpages/PetNew'
+import { macaronKeyOf } from '../utils/palette'
 
 export default function PetHall({ openSubpage }) {
   const {
@@ -53,7 +54,7 @@ export default function PetHall({ openSubpage }) {
             <button className="btn btn-primary mt-8" onClick={() => openSubpage(PetNew)}>新建活命指标</button>
           </div>
         ) : (
-          activePets.map(v => {
+          activePets.map((v, idx) => {
             const sp = PET_SPECIES[v.pet.species]
             const st = PET_STATE_META[v.state]
             const img = v.state === 'alive'
@@ -61,7 +62,7 @@ export default function PetHall({ openSubpage }) {
               : sp.states[v.state]
             return (
               <div key={v.pet.id} className="list-item pet-card" onClick={() => openSubpage(PetHome, { petId: v.pet.id })}>
-                <div className="pet-thumb" style={{ background: (sp.accent || '#F2B8C6') + '33' }}>
+                <div className="pet-thumb" data-mc={macaronKeyOf(sp.accent, idx)}>
                   <img src={img} alt={sp.name} />
                 </div>
                 <div className="item-content">

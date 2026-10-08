@@ -57,7 +57,7 @@ export default function Profile({ openSubpage }) {
         <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>v1.0.0</div>
         <div className="card" style={{ marginTop: 12, display: 'inline-block', padding: '8px 24px' }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>总积分</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)' }}>{totalScore}</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary-ink)' }}>{totalScore}</div>
         </div>
       </div>
 
