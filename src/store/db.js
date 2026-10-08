@@ -2,7 +2,7 @@ import { openDB } from 'idb'
 import { STORE_NAMES } from '../utils/constants'
 
 const DB_NAME = 'neptune-self-discipline'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 let dbPromise = null
 

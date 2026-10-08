@@ -1,15 +1,22 @@
 import React, { useState, useMemo } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
-import { getFriendlyDate, isToday, getToday, getMonthRange, getMonthName } from '../utils/date'
+import { getFriendlyDate, getToday, getMonthRange } from '../utils/date'
+import { fmtMoney, fmtMoneyShort, round2 } from '../utils/money'
 import CalendarModal from '../components/CalendarModal'
 import ConfirmModal from '../components/ConfirmModal'
 import BillNew from '../subpages/BillNew'
 import BillDetail from '../subpages/BillDetail'
 import CategoryManage from '../subpages/CategoryManage'
 import CategoryBills from '../subpages/CategoryBills'
+import AssetsManage from '../subpages/AssetsManage'
+import SavingsEdit from '../subpages/SavingsEdit'
+import SavingsDetail from '../subpages/SavingsDetail'
 
 export default function Accounting({ openSubpage }) {
-  const { loaded, bills, categories, viewDate, setViewDate } = useApp()
+  const {
+    loaded, bills, categories, viewDate, setViewDate,
+    savingsGoals, savingsByGoal, savingsNet, balance, assetsTotal,
+  } = useApp()
   const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('daily')
   const [editingBill, setEditingBill] = useState(null)
@@ -25,18 +32,18 @@ export default function Accounting({ openSubpage }) {
     [bills, viewDate]
   )
   const dayIncome = useMemo(() =>
-    dayBills.filter(b => b.type === 'income').reduce((s, b) => s + b.amount, 0),
-    [dayBills]
+    bills.filter(b => b.date === viewDate && b.type === 'income').reduce((s, b) => s + b.amount, 0),
+    [bills, viewDate]
   )
   const dayExpense = useMemo(() =>
-    dayBills.filter(b => b.type === 'expense').reduce((s, b) => s + b.amount, 0),
-    [dayBills]
+    bills.filter(b => b.date === viewDate && b.type === 'expense').reduce((s, b) => s + b.amount, 0),
+    [bills, viewDate]
   )
 
   // 月度账单
   const monthBills = useMemo(() =>
     bills.filter(b => b.date >= monthRange.firstDay && b.date <= monthRange.lastDay),
-    [bills, monthRange]
+    [bills, monthRange.firstDay, monthRange.lastDay]
   )
   const monthIncome = useMemo(() =>
     monthBills.filter(b => b.type === 'income').reduce((s, b) => s + b.amount, 0),
@@ -66,7 +73,17 @@ export default function Accounting({ openSubpage }) {
     })).filter(x => x.cat)
   }, [monthBills, categories])
 
-  const fmtMoney = (n) => `¥${n.toFixed(2)}`
+  // 存钱计划：进行中的排前面，其余按创建时间倒序
+  const sortedGoals = useMemo(() => {
+    return [...savingsGoals].sort((a, b) => {
+      const sa = a.status === 'done' ? 1 : 0
+      const sb = b.status === 'done' ? 1 : 0
+      if (sa !== sb) return sa - sb
+      return (b.createdAt || 0) - (a.createdAt || 0)
+    })
+  }, [savingsGoals])
+
+  const activeGoalCount = useMemo(() => savingsGoals.filter(g => g.status !== 'done').length, [savingsGoals])
 
   if (!loaded) return <div className="loading">加载中...</div>
 
@@ -86,8 +103,11 @@ export default function Accounting({ openSubpage }) {
             </span>
           </div>
           <div className="top-bar-right">
+            <button className="btn btn-sm btn-outline" onClick={() => openSubpage(AssetsManage)}>
+              资产
+            </button>
             <button className="btn btn-sm btn-outline" onClick={() => openSubpage(CategoryManage)}>
-              分类管理
+              分类
             </button>
           </div>
         </div>
@@ -99,6 +119,9 @@ export default function Accounting({ openSubpage }) {
           </button>
           <button className={`tab-bar-item${tab === 'monthly' ? ' active' : ''}`} onClick={() => setTab('monthly')}>
             月度概览
+          </button>
+          <button className={`tab-bar-item${tab === 'savings' ? ' active' : ''}`} onClick={() => setTab('savings')}>
+            存钱罐
           </button>
         </div>
 
@@ -115,7 +138,7 @@ export default function Accounting({ openSubpage }) {
                 <div className="summary-label">支出</div>
               </div>
               <div className="summary-card">
-                <div className="summary-value">{fmtMoney(dayIncome - dayExpense)}</div>
+                <div className="summary-value">{fmtMoney(round2(dayIncome - dayExpense))}</div>
                 <div className="summary-label">结余</div>
               </div>
             </div>
@@ -127,7 +150,7 @@ export default function Accounting({ openSubpage }) {
                 <div className="empty-text">当日还没有账单，点击右下角记一笔吧</div>
               </div>
             ) : (
-              dayBills.sort((a, b) => b.createTime - a.createTime).map(bill => {
+              [...dayBills].sort((a, b) => b.createTime - a.createTime).map(bill => {
                 const cat = getCategory(bill.categoryId)
                 return (
                   <div key={bill.id} className="list-item" onClick={() => setEditingBill(bill)}>
@@ -161,7 +184,7 @@ export default function Accounting({ openSubpage }) {
                 <div className="summary-label">月支出</div>
               </div>
               <div className="summary-card">
-                <div className="summary-value">{fmtMoney(monthIncome - monthExpense)}</div>
+                <div className="summary-value">{fmtMoney(round2(monthIncome - monthExpense))}</div>
                 <div className="summary-label">月结余</div>
               </div>
             </div>
@@ -229,11 +252,83 @@ export default function Accounting({ openSubpage }) {
           </>
         )}
 
+        {tab === 'savings' && (
+          <>
+            {/* 存钱罐汇总 */}
+            <div className="savings-summary" onClick={() => openSubpage(AssetsManage)}>
+              <div>
+                <div className="savings-summary-label">存钱罐总额</div>
+                <div className="savings-summary-value">{fmtMoney(savingsNet)}</div>
+              </div>
+              <div className="savings-summary-side">
+                <div>可用余额 {fmtMoneyShort(balance)}</div>
+                <div>总资产 {fmtMoneyShort(assetsTotal)}</div>
+              </div>
+            </div>
+
+            {sortedGoals.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">🐷</div>
+                <div className="empty-text">
+                  还没有存钱计划<br />给想买的东西建个罐子，一点点存起来吧
+                </div>
+                <button className="btn btn-primary mt-16" onClick={() => openSubpage(SavingsEdit)}>+ 新建存钱计划</button>
+              </div>
+            ) : (
+              <>
+                {sortedGoals.map(goal => {
+                  const saved = savingsByGoal[goal.id]?.saved || 0
+                  const pct = goal.target > 0 ? Math.min(1, saved / goal.target) : 0
+                  const remaining = round2(Math.max(0, goal.target - saved))
+                  const done = goal.status === 'done'
+                  return (
+                    <div
+                      key={goal.id}
+                      className={`savings-card${done ? ' done' : ''}`}
+                      onClick={() => openSubpage(SavingsDetail, { goalId: goal.id })}
+                    >
+                      <div className="savings-card-head">
+                        <div className="savings-card-emoji" style={{ background: `${goal.color}33` }}>{goal.emoji}</div>
+                        <div className="savings-card-info">
+                          <div className="savings-card-name">
+                            {goal.name}
+                            {done && <span className="savings-tag-done">已完成</span>}
+                          </div>
+                          <div className="savings-card-amount">
+                            {fmtMoney(saved)} <span className="savings-card-target">/ {fmtMoney(goal.target)}</span>
+                          </div>
+                        </div>
+                        <div className="savings-card-pct" style={{ color: goal.color }}>{Math.round(pct * 100)}%</div>
+                      </div>
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${pct * 100}%`, background: goal.color }} />
+                      </div>
+                      <div className="savings-card-foot">
+                        <span>{remaining > 0 ? `还差 ${fmtMoney(remaining)}` : '已达成目标 🎉'}</span>
+                        <span>{savingsByGoal[goal.id]?.records.length || 0} 笔记录</span>
+                      </div>
+                    </div>
+                  )
+                })}
+                <button className="btn btn-outline btn-block mt-8" onClick={() => openSubpage(SavingsEdit)}>
+                  + 新建存钱计划
+                </button>
+              </>
+            )}
+          </>
+        )}
+
         <div style={{ height: 80 }} />
       </div>
 
-      {/* FAB */}
-      <button className="fab" onClick={() => openSubpage(BillNew)}>+</button>
+      {/* FAB：账单页记一笔 / 存钱罐页新建计划 */}
+      <button
+        className="fab"
+        aria-label={tab === 'savings' ? '新建存钱计划' : '记一笔'}
+        onClick={() => openSubpage(tab === 'savings' ? SavingsEdit : BillNew)}
+      >
+        +
+      </button>
 
       {/* 日历 */}
       {showCalendar && (

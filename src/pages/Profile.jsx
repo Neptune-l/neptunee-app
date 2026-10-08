@@ -1,7 +1,6 @@
 import React from 'react'
 import { useApp } from '../store/store'
 import AchievementWall from '../subpages/AchievementWall'
-import FocusDiaryList from '../subpages/FocusDiaryList'
 import WishEdit from '../subpages/WishEdit'
 import ExchangeRecords from '../subpages/ExchangeRecords'
 import DietRecordList from '../subpages/DietRecordList'
@@ -16,7 +15,6 @@ const FEATURE_GROUPS = [
     title: null,
     items: [
       { icon: '🏆', label: '成就徽章', subpage: AchievementWall },
-      { icon: '📝', label: '专注日记', subpage: FocusDiaryList },
     ]
   },
   {

@@ -4,7 +4,7 @@
 .pet-wallet span { font-size: 13px; font-weight: 600; }
 .wallet-ico { width: 18px; height: 18px; object-fit: contain; image-rendering: pixelated; }
 
-.pet-card { background: #fffdfb; }
+.pet-card { background: var(--surface-warm); }
 .pet-thumb { width: 64px; height: 64px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .pet-thumb img { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; }
 .pet-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
@@ -18,7 +18,7 @@
 .pet-progress span { font-size: 11px; color: var(--text-secondary); min-width: 52px; text-align: right; }
 
 .pet-stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-.pet-stat { background: #fffdfb; border: 1px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; }
+.pet-stat { background: var(--surface-warm); border: 1px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; }
 .pet-stat b { display: block; font-size: 16px; color: var(--text-primary); }
 .pet-stat span { font-size: 11px; color: var(--text-secondary); }
 
@@ -34,13 +34,13 @@
 .pet-decor img { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
 
 .pet-species-row { display: flex; gap: 10px; margin-top: 8px; }
-.pet-species { flex: 1; text-align: center; padding: 12px 6px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; background: #fffdfb; }
+.pet-species { flex: 1; text-align: center; padding: 12px 6px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; background: var(--surface-warm); }
 .pet-species.active { border-color: var(--primary); background: var(--primary) 12; box-shadow: 0 0 0 1px var(--primary); }
 .pet-species img { width: 72px; height: 72px; object-fit: contain; image-rendering: pixelated; }
 .pet-species-name { font-size: 13px; font-weight: 600; margin-top: 6px; }
 .pet-species-tag { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
-.pet-widget { display: flex; align-items: center; gap: 10px; background: #fffdfb; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; cursor: pointer; }
+.pet-widget { display: flex; align-items: center; gap: 10px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; cursor: pointer; }
 .pet-widget img { width: 44px; height: 44px; object-fit: contain; image-rendering: pixelated; }
 .pet-widget-name { font-size: 13px; font-weight: 600; }
 .pet-widget-text { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }

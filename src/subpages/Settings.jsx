@@ -4,7 +4,7 @@ import { exportAllData, importAllData, clearAllData } from '../store/db'
 import ConfirmModal from '../components/ConfirmModal'
 
 export default function Settings({ onClose }) {
-  const { theme, setTheme, greetingEnabled, setGreetingEnabled, petWidgetEnabled, togglePetWidget } = useApp()
+  const { theme, setTheme, greetingEnabled, setGreetingEnabled, petWidgetEnabled, togglePetWidget, habitLayout, setHabitLayout } = useApp()
   const [showThemePicker, setShowThemePicker] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -28,15 +28,19 @@ export default function Settings({ onClose }) {
 
   const handleImport = async (e) => {
     const file = e.target.files[0]
+    // 无论成败都要清空，否则再次选择同一个文件不会触发 change
+    e.target.value = ''
     if (!file) return
     try {
       const text = await file.text()
       const data = JSON.parse(text)
+      if (!data || typeof data !== 'object') throw new Error('文件内容不是有效备份')
       await importAllData(data)
       showGlobalToast('数据导入成功，请刷新页面')
       setShowImportConfirm(false)
-      setTimeout(() => window.location.reload(), 1500)
-    } catch (e) {
+      setTimeout(() => window.location.reload(), 1200)
+    } catch (err) {
+      console.error('导入失败:', err)
       showGlobalToast('导入失败，请检查文件格式')
     }
   }
@@ -67,10 +71,7 @@ export default function Settings({ onClose }) {
               <button className={`theme-option${theme === 'dark' ? ' active' : ''}`} onClick={() => setTheme('dark')}>
                 🌙 深色
               </button>
-              <button className={`theme-option${theme === 'system' ? ' active' : ''}`} onClick={() => {
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-                setTheme(prefersDark ? 'dark' : 'light')
-              }}>
+              <button className={`theme-option${theme === 'system' ? ' active' : ''}`} onClick={() => setTheme('system')}>
                 💻 跟随系统
               </button>
             </div>
@@ -88,6 +89,20 @@ export default function Settings({ onClose }) {
               <span className="settings-label">首页置顶小可怜</span>
             </div>
             <div className={`toggle-switch${petWidgetEnabled ? ' on' : ''}`} />
+          </div>
+          <div className="card" style={{ marginBottom: 6 }}>
+            <label className="form-label">打卡区布局</label>
+            <div className="theme-selector" style={{ marginTop: 8 }}>
+              <button className={`theme-option${habitLayout === 'grid' ? ' active' : ''}`} onClick={() => setHabitLayout('grid')}>
+                ▦ 网格
+              </button>
+              <button className={`theme-option${habitLayout === 'list' ? ' active' : ''}`} onClick={() => setHabitLayout('list')}>
+                ☰ 列表
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.6 }}>
+              网格：一屏能放下更多习惯，点一下即打卡。列表：习惯名称较长时更好读。
+            </div>
           </div>
         </div>
 

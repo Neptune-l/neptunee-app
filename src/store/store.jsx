@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { get, getAll, put, del, clear, getGlobal, setGlobal, exportAllData, importAllData, clearAllData, deleteKey as delKey } from './db'
-import { STORE_NAMES, ACHIEVEMENTS_CONFIG } from '../utils/constants'
-import { getWeekKey, getToday, generateId } from '../utils/date'
+import { STORE_NAMES, ACHIEVEMENTS_CONFIG, DEFAULT_CATEGORIES, DEFAULT_SAVINGS_EMOJI, DEFAULT_COLOR } from '../utils/constants'
+import { getWeekKey, getToday, generateId, makeCheckKey, parseCheckKey, countStreak } from '../utils/date'
+import { round2, sumMoney } from '../utils/money'
 import { PET_MARKET_ITEMS, PET_SPECIES } from '../utils/petConstants'
 import { buildPlanDays, computePetView } from '../utils/petLogic'
 
@@ -30,6 +31,9 @@ export function AppProvider({ children }) {
   const [tasks, setTasks] = useState([])
   const [bills, setBills] = useState([])
   const [categories, setCategories] = useState([])
+  const [savingsGoals, setSavingsGoals] = useState([])
+  const [savingsRecords, setSavingsRecords] = useState([])
+  const [totalAssetsBase, setTotalAssetsBase] = useState(0)
   const [wishes, setWishes] = useState([])
   const [exchangeRecords, setExchangeRecords] = useState([])
   const [focusDiary, setFocusDiary] = useState([])
@@ -49,6 +53,9 @@ export function AppProvider({ children }) {
   const [maxScore, setMaxScore] = useState(0)
   const [theme, setTheme] = useState('light')
   const [greetingEnabled, setGreetingEnabled] = useState(true)
+  const [habitLayout, setHabitLayoutState] = useState('grid')
+  // 打卡索引：habitId -> 已打卡日期集合。算连续天数时不必逐个习惯去查库
+  const [checkIndex, setCheckIndex] = useState({})
   const [chatCounter, setChatCounter] = useState(0)
   const [loaded, setLoaded] = useState(false)
   const [currentDate, setCurrentDate] = useState(getToday())
@@ -67,7 +74,7 @@ export function AppProvider({ children }) {
 
   // 加载所有数据
   const loadAll = useCallback(async () => {
-    const [h, t, b, c, w, e, f, d, g, a, fw, p, pp, ph, pi] = await Promise.all([
+    const [h, t, b, c, w, e, f, d, g, a, fw, p, pp, ph, pi, sg, sr, gl] = await Promise.all([
       getAll(STORE_NAMES.HABITS),
       getAll(STORE_NAMES.TASKS),
       getAll(STORE_NAMES.BILLS),
@@ -83,6 +90,9 @@ export function AppProvider({ children }) {
       getAll(STORE_NAMES.PET_PLANS),
       getAll(STORE_NAMES.PET_HISTORY),
       getAll(STORE_NAMES.PET_INVENTORY),
+      getAll(STORE_NAMES.SAVINGS),
+      getAll(STORE_NAMES.SAVINGS_RECORDS),
+      getAll(STORE_NAMES.GLOBAL),
     ])
     setHabits(h || [])
     setTasks(t || [])
@@ -99,6 +109,20 @@ export function AppProvider({ children }) {
     setPetPlans(pp || [])
     setPetHistory(ph || [])
     setPetInventory(pi || [])
+    setSavingsGoals(sg || [])
+    setSavingsRecords(sr || [])
+
+    // 从 global 表里一次性抽出全部打卡记录并按习惯归档
+    // （值只取真值：克制习惯的破戒次数也算"有记录"，但只用于正向习惯的连续天数）
+    const idx = {}
+    for (const row of gl || []) {
+      if (!row || typeof row.key !== 'string' || !row.value) continue
+      const parsed = parseCheckKey(row.key)
+      if (!parsed) continue
+      if (!idx[parsed.habitId]) idx[parsed.habitId] = new Set()
+      idx[parsed.habitId].add(parsed.dateStr)
+    }
+    setCheckIndex(idx)
 
     // 加载全局设置
     const savedScore = await getGlobal('totalScore')
@@ -111,6 +135,8 @@ export function AppProvider({ children }) {
     const savedRevivePills = await getGlobal('petRevivePills')
     const savedCatchupTickets = await getGlobal('petCatchupTickets')
     const savedPetWidget = await getGlobal('petWidgetEnabled')
+    const savedTotalAssets = await getGlobal('totalAssets')
+    const savedHabitLayout = await getGlobal('habitLayout')
 
     setTotalScore(savedScore || 0)
     setMaxScore(savedMaxScore || 0)
@@ -123,6 +149,8 @@ export function AppProvider({ children }) {
     setPetRevivePills(savedRevivePills || 0)
     setPetCatchupTickets(savedCatchupTickets || 0)
     setPetWidgetEnabled(!!savedPetWidget)
+    setTotalAssetsBase(round2(savedTotalAssets) || 0)
+    if (savedHabitLayout === 'grid' || savedHabitLayout === 'list') setHabitLayoutState(savedHabitLayout)
 
     setLoaded(true)
     initializationDone.current = true
@@ -228,6 +256,127 @@ export function AppProvider({ children }) {
     await del(STORE_NAMES.BILLS, id)
     setBills(prev => prev.filter(b => b.id !== id))
   }, [])
+
+  // ===== 资产 / 存钱罐 =====
+
+  /**
+   * 期初总资产（用户录入的基准值，存在 global 里）
+   * 当前总资产 = 期初 + 累计收入 - 累计支出
+   * 可用余额   = 当前总资产 - 存钱罐净额
+   */
+  const setTotalAssetsBaseValue = useCallback(async (v) => {
+    const n = round2(v)
+    await setGlobal('totalAssets', n)
+    setTotalAssetsBase(n)
+    return n
+  }, [])
+
+  /** 存钱目标 */
+  const addSavingsGoal = useCallback(async (goal) => {
+    const newGoal = {
+      id: generateId(),
+      name: (goal.name || '').trim() || '存钱计划',
+      emoji: goal.emoji || DEFAULT_SAVINGS_EMOJI,
+      color: goal.color || DEFAULT_COLOR,
+      target: round2(goal.target) || 0,
+      deadline: goal.deadline || null,
+      note: (goal.note || '').trim(),
+      status: 'active',
+      createdAt: Date.now(),
+      doneAt: null,
+    }
+    await put(STORE_NAMES.SAVINGS, newGoal)
+    setSavingsGoals(prev => [...prev, newGoal])
+    return newGoal
+  }, [])
+
+  const updateSavingsGoal = useCallback(async (goal) => {
+    await put(STORE_NAMES.SAVINGS, goal)
+    setSavingsGoals(prev => prev.map(g => g.id === goal.id ? goal : g))
+  }, [])
+
+  const deleteSavingsGoal = useCallback(async (id) => {
+    const owned = savingsRecords.filter(r => r.goalId === id)
+    for (const r of owned) await del(STORE_NAMES.SAVINGS_RECORDS, r.id)
+    await del(STORE_NAMES.SAVINGS, id)
+    setSavingsGoals(prev => prev.filter(g => g.id !== id))
+    setSavingsRecords(prev => prev.filter(r => r.goalId !== id))
+  }, [savingsRecords])
+
+  /**
+   * 存入 / 取出
+   * 存入会把钱从「可用余额」划进存钱罐，取出则归还；总资产始终不变
+   */
+  const addSavingsRecord = useCallback(async (goalId, { amount, type = 'in', date, remark } = {}) => {
+    const n = round2(amount)
+    if (!(n > 0)) return null
+    const goal = savingsGoals.find(g => g.id === goalId)
+    if (!goal) return null
+
+    const rec = {
+      id: generateId(),
+      goalId,
+      amount: n,
+      type: type === 'out' ? 'out' : 'in',
+      date: date || getToday(),
+      remark: (remark || '').trim(),
+      createTime: Date.now(),
+    }
+    await put(STORE_NAMES.SAVINGS_RECORDS, rec)
+    const nextRecords = [...savingsRecords, rec]
+    setSavingsRecords(nextRecords)
+
+    // 达成即自动标记完成（取出导致回落的，不会自动取消完成状态）
+    const saved = round2(nextRecords
+      .filter(r => r.goalId === goalId)
+      .reduce((s, r) => s + (r.type === 'in' ? r.amount : -r.amount), 0))
+    if (goal.status === 'active' && goal.target > 0 && saved >= goal.target) {
+      const done = { ...goal, status: 'done', doneAt: Date.now() }
+      await put(STORE_NAMES.SAVINGS, done)
+      setSavingsGoals(prev => prev.map(g => g.id === goalId ? done : g))
+    }
+    return rec
+  }, [savingsGoals, savingsRecords])
+
+  const deleteSavingsRecord = useCallback(async (id) => {
+    await del(STORE_NAMES.SAVINGS_RECORDS, id)
+    setSavingsRecords(prev => prev.filter(r => r.id !== id))
+  }, [])
+
+  const toggleSavingsDone = useCallback(async (goal) => {
+    const next = goal.status === 'done'
+      ? { ...goal, status: 'active', doneAt: null }
+      : { ...goal, status: 'done', doneAt: Date.now() }
+    await put(STORE_NAMES.SAVINGS, next)
+    setSavingsGoals(prev => prev.map(g => g.id === goal.id ? next : g))
+    return next
+  }, [])
+
+  // ===== 资产派生值 =====
+  const totalIncome = useMemo(() => sumMoney(bills.filter(b => b.type === 'income'), b => b.amount), [bills])
+  const totalExpense = useMemo(() => sumMoney(bills.filter(b => b.type === 'expense'), b => b.amount), [bills])
+  /** 当前总资产 = 期初 + 收入 - 支出 */
+  const assetsTotal = useMemo(() => round2(totalAssetsBase + totalIncome - totalExpense), [totalAssetsBase, totalIncome, totalExpense])
+  /** 存钱罐净额（已存进去的钱） */
+  const savingsNet = useMemo(() => sumMoney(savingsRecords, r => r.type === 'in' ? r.amount : -r.amount), [savingsRecords])
+  /** 可用余额 = 总资产 - 存钱罐 */
+  const balance = useMemo(() => round2(assetsTotal - savingsNet), [assetsTotal, savingsNet])
+
+  /** 按目标聚合的存钱情况：{ [goalId]: { saved, records } } */
+  const savingsByGoal = useMemo(() => {
+    const map = {}
+    for (const g of savingsGoals) map[g.id] = { saved: 0, records: [] }
+    for (const r of savingsRecords) {
+      if (!map[r.goalId]) map[r.goalId] = { saved: 0, records: [] }
+      const bucket = map[r.goalId]
+      bucket.records.push(r)
+      bucket.saved = round2(bucket.saved + (r.type === 'in' ? r.amount : -r.amount))
+    }
+    for (const key of Object.keys(map)) {
+      map[key].records.sort((a, b) => (a.date === b.date ? (b.createTime || 0) - (a.createTime || 0) : (a.date < b.date ? 1 : -1)))
+    }
+    return map
+  }, [savingsGoals, savingsRecords])
 
   // ===== 分类操作 =====
   const addCategory = useCallback(async (cat) => {
@@ -389,15 +538,15 @@ export function AppProvider({ children }) {
     const diff = (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
     weekStart.setDate(weekStart.getDate() - diff)
 
+    const dayHabits = habits.filter(h => weekData.habitIds.includes(h.id))
+
     for (let i = 0; i < 7; i++) {
       const date = new Date(weekStart)
       date.setDate(weekStart.getDate() + i)
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
-      const dayHabits = habits.filter(h => weekData.habitIds.includes(h.id))
       for (const habit of dayHabits) {
-        const checkKey = `check_${dateStr}_${habit.id}`
-        const checked = await getGlobal(checkKey)
+        const checked = await getGlobal(makeCheckKey(dateStr, habit.id))
         if (checked) totalCheckedDays++
       }
     }
@@ -418,12 +567,17 @@ export function AppProvider({ children }) {
     const habit = habits.find(h => h.id === habitId)
     if (!habit) return null
 
-    const checkKey = `check_${dateStr}_${habitId}`
+    const checkKey = makeCheckKey(dateStr, habitId)
 
     if (habit.type === 'positive') {
       const alreadyChecked = await getGlobal(checkKey)
       if (alreadyChecked) return { already: true }
       await setGlobal(checkKey, true)
+      setCheckIndex(prev => {
+        const next = new Set(prev[habitId] || [])
+        next.add(dateStr)
+        return { ...prev, [habitId]: next }
+      })
       const newScore = await updateScore(habit.score || 5)
       return { already: false, delta: habit.score || 5, newScore }
     } else {
@@ -439,10 +593,16 @@ export function AppProvider({ children }) {
   const uncheckHabit = useCallback(async (habitId, dateStr) => {
     const habit = habits.find(h => h.id === habitId)
     if (!habit) return
-    const checkKey = `check_${dateStr}_${habitId}`
+    const checkKey = makeCheckKey(dateStr, habitId)
 
     if (habit.type === 'positive') {
       await delKey(checkKey)
+      setCheckIndex(prev => {
+        if (!prev[habitId]) return prev
+        const next = new Set(prev[habitId])
+        next.delete(dateStr)
+        return { ...prev, [habitId]: next }
+      })
       await updateScore(-(habit.score || 5))
     } else {
       const count = await getGlobal(checkKey) || 0
@@ -456,8 +616,7 @@ export function AppProvider({ children }) {
   const getHabitStatus = useCallback(async (habitId, dateStr) => {
     const habit = habits.find(h => h.id === habitId)
     if (!habit) return null
-    const checkKey = `check_${dateStr}_${habitId}`
-    const value = await getGlobal(checkKey)
+    const value = await getGlobal(makeCheckKey(dateStr, habitId))
 
     if (habit.type === 'positive') {
       return { checked: !!value }
@@ -465,6 +624,14 @@ export function AppProvider({ children }) {
       return { count: value || 0 }
     }
   }, [habits])
+
+  /**
+   * 习惯到 dateStr 为止的连续打卡天数。
+   * 那天还没打卡时从它的前一天往前数 —— "今天还没打卡"不算断。
+   */
+  const getHabitStreak = useCallback((habitId, dateStr) => {
+    return countStreak(checkIndex[habitId], dateStr || getToday())
+  }, [checkIndex])
 
   // ===== 小可怜：数据与逻辑 =====
   const savePetWallet = useCallback(async (rations, pills, tickets) => {
@@ -666,6 +833,13 @@ export function AppProvider({ children }) {
     setPetWidgetEnabled(v)
   }, [petWidgetEnabled])
 
+  // 打卡区布局：grid（三列格子，默认）/ list（紧凑列表）
+  const setHabitLayout = useCallback(async (v) => {
+    const next = v === 'list' ? 'list' : 'grid'
+    await setGlobal('habitLayout', next)
+    setHabitLayoutState(next)
+  }, [])
+
   const evaluatePets = useCallback(async () => {
     if (!loaded) return
     const today = getToday()
@@ -715,34 +889,55 @@ export function AppProvider({ children }) {
     evaluatePets()
   }, [loaded, categories.length, evaluatePets])
 
-  // 监听主题变化
+  // 监听主题变化（支持 light / dark / system）
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    setGlobal('theme', theme)
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    const resolve = () => (theme === 'system' ? (mql.matches ? 'dark' : 'light') : theme)
+
+    const apply = () => document.documentElement.setAttribute('data-theme', resolve())
+    apply()
+
+    if (theme !== 'system') return
+    // 跟随系统时，系统主题变化要实时生效
+    mql.addEventListener('change', apply)
+    return () => mql.removeEventListener('change', apply)
   }, [theme])
+
+  // 主题偏好持久化（只存用户选择，不存解析结果，否则 system 会被固化）
+  useEffect(() => {
+    if (!loaded) return
+    setGlobal('theme', theme)
+    // localStorage 镜像：供 index.html 里的内联脚本在 React 挂载前消除主题闪烁
+    try { localStorage.setItem('nep-theme', theme) } catch { /* 忽略 */ }
+  }, [theme, loaded])
 
   // ===== 上下文值 =====
   const value = {
     loaded, habits, tasks, bills, categories, wishes, exchangeRecords,
     focusDiary, dietRecords, goals, achievements, focusWeeks,
+    savingsGoals, savingsRecords, savingsByGoal, savingsNet,
+    totalAssetsBase, assetsTotal, balance, totalIncome, totalExpense,
     pets, petPlans, petHistory, petInventory,
     petRations, petRevivePills, petCatchupTickets, petWidgetEnabled,
-    totalScore, maxScore, theme, greetingEnabled, chatCounter,
+    totalScore, maxScore, theme, greetingEnabled, chatCounter, habitLayout,
     currentDate, setCurrentDate, viewDate, setViewDate,
     updateScore, getCurrentScore, checkAchievements, onScoreChange,
     addHabit, updateHabit, deleteHabit,
     addTask, updateTask, deleteTask,
     addBill, updateBill, deleteBill,
     addCategory, updateCategory, deleteCategory,
+    setTotalAssetsBase: setTotalAssetsBaseValue,
+    addSavingsGoal, updateSavingsGoal, deleteSavingsGoal,
+    addSavingsRecord, deleteSavingsRecord, toggleSavingsDone,
     addWish, updateWish, deleteWish, exchangeWish,
     addFocusDiary, deleteFocusDiary,
     addDietRecord, updateDietRecord, deleteDietRecord,
     addGoal, updateGoal, deleteGoal,
     processFocusWeek, settleFocusWeek,
-    checkHabit, uncheckHabit, getHabitStatus,
+    checkHabit, uncheckHabit, getHabitStatus, getHabitStreak,
     addPet, togglePetTask, useCatchupTicket, revivePet,
     buyMarketItem, updatePetPlanDay, togglePetWidget, evaluatePets,
-    setTheme, setGreetingEnabled, setChatCounter,
+    setTheme, setGreetingEnabled, setChatCounter, setHabitLayout,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import ToastManager from './components/Toast'
 import AchievementModal from './components/AchievementModal'
+import ErrorBoundary from './components/ErrorBoundary'
 import HomePage from './pages/HomePage'
 import HabitCheckPage from './pages/HabitCheckPage'
 import TaskCenter from './pages/TaskCenter'
@@ -10,7 +11,6 @@ import Statistics from './pages/Statistics'
 import Profile from './pages/Profile'
 import PetHall from './pages/PetHall'
 import { setGlobalNavigateTab } from './store/store'
-import { useEffect } from 'react'
 
 const TABS = [
   { key: 'home', label: '首页', icon: '🏠' },
@@ -37,26 +37,88 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home')
   const [subpage, setSubpage] = useState(null)
 
-  const openSubpage = (Component, props = {}) => setSubpage({ Component, props })
-  const closeSubpage = () => setSubpage(null)
-  useEffect(() => { setGlobalNavigateTab(setActiveTab) }, [])
+  // 每个 tab 各自的滚动位置，切回来不会被顶到顶部
+  const scrollPos = useRef({})
+  const readScroll = () => {
+    const el = document.querySelector('.page-content')
+    return { win: window.scrollY || 0, el: el ? el.scrollTop : 0 }
+  }
+  const restoreScroll = (pos) => {
+    if (!pos) return
+    const el = document.querySelector('.page-content')
+    if (el) el.scrollTop = pos.el || 0
+    window.scrollTo(0, pos.win || 0)
+  }
+
+  const openSubpage = useCallback((Component, props = {}) => {
+    scrollPos.current[activeTab] = readScroll()
+    setSubpage({ Component, props })
+  }, [activeTab])
+
+  const closeSubpage = useCallback(() => setSubpage(null), [])
+
+  const switchTo = useCallback((key) => {
+    if (key === activeTab) return
+    scrollPos.current[activeTab] = readScroll()
+    setSubpage(null)
+    setActiveTab(key)
+    restoreScroll(scrollPos.current[key])
+  }, [activeTab])
+
+  const goTab = useCallback((key) => {
+    if (key === activeTab) {
+      // 再点一次当前 tab：平滑回到顶部
+      const el = document.querySelector('.page-content')
+      if (el) el.scrollTo({ top: 0, behavior: 'smooth' })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    switchTo(key)
+  }, [activeTab, switchTo])
+
+  // 供非 React 模块（如任务页/专注页的跳转）切换 tab
+  useEffect(() => { setGlobalNavigateTab(switchTo) }, [switchTo])
+
+  // 布局阶段先把滚动位置放回去，避免"先闪到顶部再跳下去"
+  useLayoutEffect(() => {
+    const pos = scrollPos.current[activeTab]
+    if (!pos) return
+    restoreScroll(pos)
+    const raf = requestAnimationFrame(() => restoreScroll(pos))
+    return () => cancelAnimationFrame(raf)
+  }, [activeTab])
 
   const PageComponent = PAGES[activeTab]
+  const activeLabel = TABS.find(t => t.key === activeTab)?.label
 
   return (
     <div className="app-container">
       <ToastManager />
       <AchievementModal />
-      <PageComponent openSubpage={openSubpage} closeSubpage={closeSubpage} />
-      {subpage && <subpage.Component {...subpage.props} onClose={closeSubpage} />}
-      <div className="bottom-tab-bar" style={{ justifyContent: 'space-around' }}>
+      <ErrorBoundary label={activeLabel}>
+        <PageComponent openSubpage={openSubpage} closeSubpage={closeSubpage} />
+      </ErrorBoundary>
+
+      {subpage && (
+        <ErrorBoundary label="二级页面">
+          <subpage.Component {...subpage.props} onClose={closeSubpage} />
+        </ErrorBoundary>
+      )}
+
+      <nav className="bottom-tab-bar" aria-label="主导航">
         {TABS.map(tab => (
-          <div key={tab.key} className={`tab-item${activeTab === tab.key ? ' active' : ''}`} onClick={() => setActiveTab(tab.key)}>
-            <span className="tab-icon">{tab.icon}</span>
+          <button
+            key={tab.key}
+            type="button"
+            className={`tab-item${activeTab === tab.key ? ' active' : ''}`}
+            aria-current={activeTab === tab.key ? 'page' : undefined}
+            onClick={() => goTab(tab.key)}
+          >
+            <span className="tab-icon" aria-hidden="true">{tab.icon}</span>
             <span className="tab-label">{tab.label}</span>
-          </div>
+          </button>
         ))}
-      </div>
+      </nav>
     </div>
   )
 }

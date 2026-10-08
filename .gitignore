@@ -5,3 +5,5 @@ dist/
 _fix_*.py
 pic/
 preview/
+.workbuddy/
+*.log

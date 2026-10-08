@@ -6,7 +6,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import TaskEdit from '../subpages/TaskEdit'
 
 export default function TaskCenter({ openSubpage }) {
-  const { loaded, tasks, viewDate, setViewDate, checkHabit, uncheckHabit } = useApp()
+  const { loaded, tasks, viewDate, setViewDate, checkHabit, uncheckHabit, updateTask } = useApp()
   const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('pending')
   const [editingTask, setEditingTask] = useState(null)
@@ -18,8 +18,6 @@ export default function TaskCenter({ openSubpage }) {
   const dayTasks = useMemo(() => tasks.filter(t => t.date === viewDate), [tasks, viewDate])
   const pendingTasks = useMemo(() => dayTasks.filter(t => !t.completed), [dayTasks])
   const completedTasks = useMemo(() => dayTasks.filter(t => t.completed), [dayTasks])
-
-  const { updateTask } = useApp()
 
   const handleToggle = async (task) => {
     if (!task.completed) {
@@ -102,7 +100,7 @@ export default function TaskCenter({ openSubpage }) {
             ) : (
               pendingTasks.map(task => (
                 <div key={task.id} className="list-item" onClick={() => handleTaskClick(task)}>
-                  <div className="checkbox-round" onClick={(e) => { e.stopPropagation(); handleToggle(task) }} />
+                  <button type="button" className="checkbox-round" aria-label={`完成任务：${task.name}`} onClick={(e) => { e.stopPropagation(); handleToggle(task) }} />
                   <div className="item-content">
                     <div className="item-title">{task.name}</div>
                     {task.remark && <div className="item-sub">{task.remark}</div>}
@@ -130,7 +128,7 @@ export default function TaskCenter({ openSubpage }) {
             ) : (
               completedTasks.map(task => (
                 <div key={task.id} className="list-item completed" onClick={() => handleTaskClick(task)}>
-                  <div className="checkbox-round checked" onClick={(e) => { e.stopPropagation(); handleToggle(task) }} />
+                  <button type="button" className="checkbox-round checked" aria-label={`取消完成：${task.name}`} onClick={(e) => { e.stopPropagation(); handleToggle(task) }} />
                   <div className="item-content">
                     <div className="item-title" style={{ textDecoration: 'line-through' }}>{task.name}</div>
                     {task.remark && <div className="item-sub">{task.remark}</div>}

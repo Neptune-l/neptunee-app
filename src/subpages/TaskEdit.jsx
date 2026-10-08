@@ -52,59 +52,65 @@ export default function TaskEdit({ task, onClose }) {
   }
 
   return (
-    <div className="subpage">
-      <div className="subpage-header">
-        <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">{isEdit ? '编辑任务' : '新建任务'}</span>
-        <button className="btn btn-primary btn-sm" onClick={handleSave}>保存</button>
-      </div>
+    <>
+      {/* 半屏抽屉：从首页/任务页点进编辑不再整页跳走，关掉即回到原位 */}
+      <div className="sheet-backdrop" onClick={onClose}>
+        <div className="sheet" onClick={e => e.stopPropagation()}>
+          <div className="sheet-grip" />
+          <div className="sheet-header">
+            <span className="sheet-title">{isEdit ? '编辑任务' : '新建任务'}</span>
+            <button type="button" className="sheet-close" aria-label="关闭" onClick={onClose}>✕</button>
+            <button className="btn btn-primary btn-sm" onClick={handleSave}>保存</button>
+          </div>
 
-      <div className="subpage-body">
-        <div className="card card-section">
-          <div className="form-group">
-            <label className="form-label">任务名称</label>
-            <input className="form-input" placeholder="输入任务名称" value={name} onChange={e => setName(e.target.value)} maxLength={30} />
+          <div className="sheet-body">
+            <div className="card card-section">
+              <div className="form-group">
+                <label className="form-label">任务名称</label>
+                <input className="form-input" placeholder="输入任务名称" value={name} onChange={e => setName(e.target.value)} maxLength={30} />
+              </div>
+            </div>
+
+            <div className="card card-section">
+              <div className="form-group">
+                <label className="form-label">所属日期</label>
+                <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="card card-section">
+              <div className="form-group">
+                <label className="form-label">备注（选填）</label>
+                <textarea className="form-input" placeholder="添加备注..." value={remark} onChange={e => setRemark(e.target.value)} maxLength={100} />
+              </div>
+            </div>
+
+            <div className="card card-section">
+              <div className="form-group">
+                <label className="form-label">关联习惯（选填）</label>
+                <select className="form-input" value={linkedHabitId} onChange={e => setLinkedHabitId(e.target.value)}>
+                  <option value="">不关联</option>
+                  {positiveHabits.map(h => (
+                    <option key={h.id} value={h.id}>{h.emoji} {h.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="card card-section">
+              <div className="form-group">
+                <label className="form-label">计时目标（分钟，0=不计时）</label>
+                <input className="form-input" type="number" min="0" value={timerTarget} onChange={e => setTimerTarget(e.target.value)} />
+              </div>
+            </div>
+
+            {isEdit && (
+              <button className="delete-btn mt-16" onClick={() => setShowDeleteConfirm(true)}>
+                删除该任务
+              </button>
+            )}
           </div>
         </div>
-
-        <div className="card card-section">
-          <div className="form-group">
-            <label className="form-label">所属日期</label>
-            <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="card card-section">
-          <div className="form-group">
-            <label className="form-label">备注（选填）</label>
-            <textarea className="form-input" placeholder="添加备注..." value={remark} onChange={e => setRemark(e.target.value)} maxLength={100} />
-          </div>
-        </div>
-
-        <div className="card card-section">
-          <div className="form-group">
-            <label className="form-label">关联习惯（选填）</label>
-            <select className="form-input" value={linkedHabitId} onChange={e => setLinkedHabitId(e.target.value)}>
-              <option value="">不关联</option>
-              {positiveHabits.map(h => (
-                <option key={h.id} value={h.id}>{h.emoji} {h.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="card card-section">
-          <div className="form-group">
-            <label className="form-label">计时目标（分钟，0=不计时）</label>
-            <input className="form-input" type="number" min="0" value={timerTarget} onChange={e => setTimerTarget(e.target.value)} />
-          </div>
-        </div>
-
-        {isEdit && (
-          <button className="delete-btn mt-16" onClick={() => setShowDeleteConfirm(true)}>
-            删除该任务
-          </button>
-        )}
       </div>
 
       {showDeleteConfirm && (
@@ -115,6 +121,6 @@ export default function TaskEdit({ task, onClose }) {
           onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
-    </div>
+    </>
   )
 }

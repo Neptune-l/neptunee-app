@@ -1,196 +1,491 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../store/store'
-import { getToday, getRecentDates, getMonthRange, getMonthDates, formatDate } from '../utils/date'
-import { getAll } from '../store/db'
+import { getToday, getRecentDates, getMonthRange, formatDate, parseCheckKey, CHECK_KEY_PREFIX } from '../utils/date'
+import { buildScoreLedger, buildScoreTrend } from '../utils/score'
+import { getAll, getGlobal } from '../store/db'
+import { fmtMoney, fmtMoneyShort } from '../utils/money'
+
+/* ===== 工具 ===== */
 
 function getMonthDatesFn(dateStr) {
-  const r = getMonthRange(dateStr); const d = []; const dt = new Date(r.firstDay + 'T00:00:00')
+  const r = getMonthRange(dateStr)
+  const d = []
+  const dt = new Date(r.firstDay + 'T00:00:00')
   const end = new Date(r.lastDay + 'T00:00:00')
   while (dt <= end) { d.push(formatDate(dt)); dt.setDate(dt.getDate() + 1) }
   return d
 }
 
-function LineChart({ data, color }) {
-  const ref = useRef(null)
-  useEffect(() => {
-    const c = ref.current; if (!c || data.length < 2) return
-    const ctx = c.getContext('2d'), dpr = window.devicePixelRatio || 1
-    c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr; ctx.scale(dpr, dpr)
-    const pad = { top: 20, bottom: 20, left: 40, right: 10 }
-    const cw = c.clientWidth - pad.left - pad.right, ch = c.clientHeight - pad.top - pad.bottom
-    const vals = data.map(d => d.value), max = Math.max(...vals, 1), min = Math.min(...vals, 0), rng = max - min || 1
-    const pts = data.map((d, i) => ({ x: pad.left + (i / (data.length - 1)) * cw, y: pad.top + ch - ((d.value - min) / rng) * ch }))
-    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch)
-    grad.addColorStop(0, color + '80'); grad.addColorStop(1, color + '10')
-    ctx.beginPath(); ctx.moveTo(pts[0].x, pad.top + ch); pts.forEach(p => ctx.lineTo(p.x, p.y))
-    ctx.lineTo(pts[pts.length - 1].x, pad.top + ch); ctx.closePath(); ctx.fillStyle = grad; ctx.fill()
-    ctx.beginPath(); pts.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y) })
-    ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke()
-    pts.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill() })
-  }, [data, color])
-  return <canvas ref={ref} style={{ width: '100%', height: 180 }} />
+/**
+ * 读取 CSS 变量真实值。
+ * canvas 的 fillStyle / strokeStyle 不认识 'var(--x)'，
+ * 直接赋值会被静默忽略，导致文字沿用上一次的颜色。
+ */
+function cssVar(el, name, fallback) {
+  if (!el || typeof window === 'undefined') return fallback
+  const v = getComputedStyle(el).getPropertyValue(name).trim()
+  return v || fallback
 }
 
-function Donut({ data, total }) {
+/** 把 canvas 按 DPR 初始化，返回 { ctx, w, h }；尺寸为 0 时返回 null */
+function setupCanvas(c, cssW, cssH) {
+  const dpr = window.devicePixelRatio || 1
+  const w = cssW || c.clientWidth
+  const h = cssH || c.clientHeight
+  if (!w || !h) return null
+  c.width = Math.round(w * dpr)
+  c.height = Math.round(h * dpr)
+  const ctx = c.getContext('2d')
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, w, h)
+  return { ctx, w, h }
+}
+
+/** 稀疏地挑出要显示的 x 轴刻度 */
+function pickTicks(len, max = 5) {
+  if (len <= max) return new Set(Array.from({ length: len }, (_, i) => i))
+  const step = Math.ceil(len / max)
+  const s = new Set()
+  for (let i = 0; i < len; i += step) s.add(i)
+  s.add(len - 1)
+  return s
+}
+
+/* ===== 折线图 ===== */
+function LineChart({ data, color, themeKey }) {
   const ref = useRef(null)
   useEffect(() => {
-    const c = ref.current; if (!c) return
-    const ctx = c.getContext('2d'), dpr = window.devicePixelRatio || 1
-    c.width = 160 * dpr; c.height = 160 * dpr; ctx.scale(dpr, dpr)
+    const c = ref.current
+    if (!c || data.length < 2) return
+    const box = setupCanvas(c, 0, 180)
+    if (!box) return
+    const { ctx, w, h } = box
+
+    const muted = cssVar(c, '--text-secondary', '#8C8288')
+    const border = cssVar(c, '--border', '#F0E8EA')
+    const pad = { top: 16, bottom: 22, left: 36, right: 10 }
+    const cw = w - pad.left - pad.right
+    const ch = h - pad.top - pad.bottom
+
+    const vals = data.map(d => d.value)
+    const max = Math.max(...vals, 1)
+    const min = Math.min(...vals, 0)
+    const rng = max - min || 1
+    const X = i => pad.left + (i / (data.length - 1)) * cw
+    const Y = v => pad.top + ch - ((v - min) / rng) * ch
+
+    // 横向网格 + y 轴刻度
+    ctx.strokeStyle = border
+    ctx.lineWidth = 1
+    ctx.font = '10px sans-serif'
+    ctx.textAlign = 'right'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = muted
+    for (let i = 0; i <= 2; i++) {
+      const v = min + (rng * i) / 2
+      const y = Y(v)
+      ctx.beginPath()
+      ctx.moveTo(pad.left, y)
+      ctx.lineTo(pad.left + cw, y)
+      ctx.stroke()
+      ctx.fillText(v >= 1000 ? (v / 1000).toFixed(1) + 'k' : Math.round(v), pad.left - 6, y)
+    }
+
+    // 面积
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch)
+    grad.addColorStop(0, color + '80')
+    grad.addColorStop(1, color + '10')
+    ctx.beginPath()
+    ctx.moveTo(X(0), pad.top + ch)
+    data.forEach((d, i) => ctx.lineTo(X(i), Y(d.value)))
+    ctx.lineTo(X(data.length - 1), pad.top + ch)
+    ctx.closePath()
+    ctx.fillStyle = grad
+    ctx.fill()
+
+    // 折线
+    ctx.beginPath()
+    data.forEach((d, i) => (i === 0 ? ctx.moveTo(X(i), Y(d.value)) : ctx.lineTo(X(i), Y(d.value))))
+    ctx.strokeStyle = color
+    ctx.lineWidth = 2.5
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+
+    // 只在数据点较少时画圆点，避免糊成一片
+    if (data.length <= 32) {
+      ctx.fillStyle = color
+      data.forEach((d, i) => {
+        ctx.beginPath()
+        ctx.arc(X(i), Y(d.value), 2.5, 0, Math.PI * 2)
+        ctx.fill()
+      })
+    }
+
+    // x 轴刻度
+    const ticks = pickTicks(data.length)
+    ctx.fillStyle = muted
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    data.forEach((d, i) => {
+      if (!ticks.has(i)) return
+      ctx.fillText((d.label || '').slice(5), X(i), pad.top + ch + 6)
+    })
+  }, [data, color, themeKey])
+  return <canvas ref={ref} style={{ width: '100%', height: 180, display: 'block' }} />
+}
+
+/* ===== 环形图 ===== */
+function Donut({ data, total, themeKey }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const c = ref.current
+    if (!c) return
+    const box = setupCanvas(c, 160, 160)
+    if (!box) return
+    const { ctx } = box
     const cx = 80, cy = 80, r = 60, ir = 40
-    if (total === 0) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.arc(cx, cy, ir, 0, Math.PI * 2, true); ctx.fillStyle = '#F0E8EA'; ctx.fill(); return }
-    let sa = -Math.PI / 2; const cs = ['#F2B8C6','#F8D2B8','#B8E2D0','#C4D7F0','#DCC2F0','#FCE4BA','#F4ACAC','#E8D0B8']
-    data.forEach((d, i) => { const a = (d.value / total) * Math.PI * 2; ctx.beginPath(); ctx.arc(cx, cy, r, sa, sa + a); ctx.arc(cx, cy, ir, sa + a, sa, true); ctx.closePath(); ctx.fillStyle = cs[i % cs.length]; ctx.fill(); sa += a })
-  })
+
+    if (!total || data.length === 0) {
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      ctx.arc(cx, cy, ir, 0, Math.PI * 2, true)
+      ctx.fillStyle = cssVar(c, '--border', '#F0E8EA')
+      ctx.fill()
+      return
+    }
+
+    const cs = ['#F2B8C6', '#F8D2B8', '#B8E2D0', '#C4D7F0', '#DCC2F0', '#FCE4BA', '#F4ACAC', '#E8D0B8']
+    let sa = -Math.PI / 2
+    data.forEach((d, i) => {
+      const a = (d.value / total) * Math.PI * 2
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, sa, sa + a)
+      ctx.arc(cx, cy, ir, sa + a, sa, true)
+      ctx.closePath()
+      ctx.fillStyle = cs[i % cs.length]
+      ctx.fill()
+      sa += a
+    })
+  }, [data, total, themeKey])
   return <canvas ref={ref} style={{ width: 160, height: 160, margin: '0 auto', display: 'block' }} />
 }
 
-function WeekBar({ data }) {
+/* ===== 周收支柱状图 ===== */
+function WeekBar({ data, themeKey }) {
   const ref = useRef(null)
   useEffect(() => {
-    const c = ref.current; if (!c || data.length === 0) return
-    const ctx = c.getContext('2d'), dpr = window.devicePixelRatio || 1
-    c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr; ctx.scale(dpr, dpr)
+    const c = ref.current
+    if (!c || data.length === 0) return
+    const box = setupCanvas(c, 0, 160)
+    if (!box) return
+    const { ctx, w, h } = box
+    const muted = cssVar(c, '--text-secondary', '#8C8288')
     const pad = { top: 10, bottom: 24, left: 8, right: 8 }
-    const cw = c.clientWidth - pad.left - pad.right, ch = c.clientHeight - pad.top - pad.bottom
+    const cw = w - pad.left - pad.right
+    const ch = h - pad.top - pad.bottom
     const max = Math.max(...data.map(d => Math.max(d.income || 0, d.expense || 0)), 1)
-    const bw = Math.min((cw / data.length) * 0.7, 40), gap = (cw - bw * data.length) / (data.length + 1)
+    const bw = Math.min((cw / data.length) * 0.7, 40)
+    const gap = (cw - bw * data.length) / (data.length + 1)
+    const half = Math.max(bw / 2 - 2, 2)
+
     data.forEach((d, i) => {
       const x = pad.left + gap + i * (bw + gap)
-      if (d.expense > 0) { ctx.fillStyle = '#F4ACAC'; ctx.fillRect(x, pad.top + ch - (d.expense / max) * ch, bw / 2 - 2, (d.expense / max) * ch); ctx.roundRect && ctx.roundRect(x, pad.top + ch - (d.expense / max) * ch, bw / 2 - 2, (d.expense / max) * ch, 3) }
-      if (d.income > 0) { ctx.fillStyle = '#B8E2D0'; ctx.fillRect(x + bw / 2 + 2, pad.top + ch - (d.income / max) * ch, bw / 2 - 2, (d.income / max) * ch) }
-      ctx.fillStyle = 'var(--text-secondary)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText(d.label, x + bw / 2, pad.top + ch + 16)
+      if (d.expense > 0) {
+        const bh = (d.expense / max) * ch
+        ctx.fillStyle = '#F4ACAC'
+        ctx.fillRect(x, pad.top + ch - bh, half, bh)
+      }
+      if (d.income > 0) {
+        const bh = (d.income / max) * ch
+        ctx.fillStyle = '#B8E2D0'
+        ctx.fillRect(x + half + 4, pad.top + ch - bh, half, bh)
+      }
+      ctx.fillStyle = muted
+      ctx.font = '10px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      ctx.fillText(d.label, x + bw / 2, pad.top + ch + 6)
     })
-  }, [data])
-  return <canvas ref={ref} style={{ width: '100%', height: 160 }} />
+  }, [data, themeKey])
+  return <canvas ref={ref} style={{ width: '100%', height: 160, display: 'block' }} />
 }
 
-function HabitGrid({ checkData, monthDates, viewDate }) {
+/* ===== 月度打卡日历 ===== */
+function HabitGrid({ checkData, monthDates, themeKey }) {
   const ref = useRef(null)
   useEffect(() => {
-    const c = ref.current; if (!c) return
-    const ctx = c.getContext('2d'), dpr = window.devicePixelRatio || 1
+    const c = ref.current
+    if (!c || monthDates.length === 0) return
+
     const cellSize = 18, gap = 3, cols = 7, rows = Math.ceil(monthDates.length / 7)
-    const w = 30 + cols * (cellSize + gap), h = 20 + rows * (cellSize + gap)
-    c.width = w * dpr; c.height = h * dpr; ctx.scale(dpr, dpr)
-    ctx.fillStyle = 'var(--card-bg)'; ctx.fillRect(0, 0, w, h)
-    const weekDays = ['日','一','二','三','四','五','六']
-    ctx.fillStyle = 'var(--text-secondary)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
-    weekDays.forEach((d, i) => { ctx.fillText(d, 30 + i * (cellSize + gap) + cellSize / 2, 12) })
+    const w = 30 + cols * (cellSize + gap)
+    const h = 20 + rows * (cellSize + gap)
+    const box = setupCanvas(c, w, h)
+    if (!box) return
+    const { ctx } = box
+
+    const muted = cssVar(c, '--text-secondary', '#8C8288')
+    const strong = cssVar(c, '--text-primary', '#443E46')
+    const empty = cssVar(c, '--border', '#F0E8EA')
+    const filled = cssVar(c, '--primary', '#F2B8C6')
+
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+    ctx.fillStyle = muted
+    ctx.font = '9px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    weekDays.forEach((d, i) => ctx.fillText(d, 30 + i * (cellSize + gap) + cellSize / 2, 10))
+
     const today = getToday()
     monthDates.forEach((dateStr, i) => {
       const row = Math.floor(i / 7), col = i % 7
-      const x = 30 + col * (cellSize + gap), y = 20 + row * (cellSize + gap)
-      const checked = checkData[dateStr]
-      if (checked) { ctx.fillStyle = '#F2B8C6'; ctx.fillRect(x, y, cellSize, cellSize) }
-      else { ctx.fillStyle = '#F0E8EA'; ctx.fillRect(x, y, cellSize, cellSize) }
-      if (dateStr === today) { ctx.strokeStyle = 'var(--text-primary)'; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, cellSize, cellSize) }
-      ctx.fillStyle = checked ? '#fff' : 'var(--text-secondary)'
-      ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText(parseInt(dateStr.slice(-2)), x + cellSize / 2, y + cellSize / 2 + 3)
+      const x = 30 + col * (cellSize + gap)
+      const y = 20 + row * (cellSize + gap)
+      const checked = !!checkData[dateStr]
+
+      ctx.fillStyle = checked ? filled : empty
+      ctx.fillRect(x, y, cellSize, cellSize)
+
+      if (dateStr === today) {
+        ctx.strokeStyle = strong
+        ctx.lineWidth = 1.5
+        ctx.strokeRect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1)
+      }
+
+      ctx.fillStyle = checked ? '#FFFFFF' : muted
+      ctx.font = '9px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(parseInt(dateStr.slice(-2), 10), x + cellSize / 2, y + cellSize / 2 + 1)
     })
-  })
-  return <canvas ref={ref} style={{ width: '100%', maxWidth: 340 }} />
+  }, [checkData, monthDates, themeKey])
+  return <canvas ref={ref} style={{ width: '100%', maxWidth: 340, display: 'block' }} />
 }
 
+/* ===== 页面 ===== */
 export default function Statistics() {
-  const { loaded, bills, habits, focusDiary, viewDate } = useApp()
+  const { loaded, bills, habits, exchangeRecords, viewDate, theme, savingsGoals, savingsByGoal, savingsNet, balance } = useApp()
   const [timeFilter, setTimeFilter] = useState('30d')
-  const [scoreTrend, setScoreTrend] = useState([])
+  const [globalRows, setGlobalRows] = useState([])
   const [statV, setStatV] = useState({ s: 0, cd: 0, me: 0, mb: 0, tf: 0 })
-  const [checkData, setCheckData] = useState({})
+
   const today = getToday()
   const monthRange = getMonthRange(viewDate)
-
-  useEffect(() => {
-    if (!loaded) return
-    const load = async () => {
-      try {
-        const s = await (await import('../store/db')).getGlobal('totalScore') || 0
-        const g = await getAll('global')
-        const ck = g.filter(x => x.key && x.key.startsWith('check_') && x.value === true)
-        const ud = new Set(ck.map(x => x.key.split('_')[1]))
-        const mb = bills.filter(b => b.date >= monthRange.firstDay && b.date <= monthRange.lastDay)
-        const me = mb.filter(b => b.type === 'expense').reduce((s, b) => s + b.amount, 0)
-        const mi = mb.filter(b => b.type === 'income').reduce((s, b) => s + b.amount, 0)
-        setStatV({ s, cd: ud.size, me, mb: mi - me, tf: focusDiary.reduce((s, d) => s + d.duration, 0) })
-        const dates = timeFilter === '7d' ? getRecentDates(today, 7) : timeFilter === '30d' ? getRecentDates(today, 30) : timeFilter === 'thisMonth' ? getMonthDatesFn(viewDate) : getRecentDates(today, 90)
-        setScoreTrend(dates.map(d => ({ label: d, value: 0 })))
-        // 加载打卡日历数据
-        const md = getMonthDatesFn(viewDate)
-        const chk = {}
-        for (const dateStr of md) {
-          let dayChecked = false
-          for (const h of habits) {
-            const k = `check_${dateStr}_${h.id}`
-            if (ck.some(x => x.key === k)) { dayChecked = true; break }
-          }
-          chk[dateStr] = dayChecked
-        }
-        setCheckData(chk)
-      } catch(e) { console.error('Stats error:', e) }
-    }
-    load()
-  }, [loaded, timeFilter, viewDate, bills, focusDiary, habits])
-
-  const ringData = useMemo(() => habits.filter(h => h.type === 'positive').map(h => ({ label: h.name, value: h.score || 5 })), [habits])
-  const ringTotal = useMemo(() => ringData.reduce((s, d) => s + d.value, 0), [ringData])
   const monthDates = useMemo(() => getMonthDatesFn(viewDate), [viewDate])
 
-  const weekBars = useMemo(() => {
-    const groups = []; let cur = { label: 'W1', income: 0, expense: 0 }; let wk = 1; let cnt = 0
-    const db = bills.filter(b => b.date >= monthRange.firstDay && b.date <= monthRange.lastDay)
-    monthDates.forEach(d => {
-      const dayB = db.filter(b => b.date === d)
-      cur.income += dayB.filter(b => b.type === 'income').reduce((s, b) => s + b.amount, 0)
-      cur.expense += dayB.filter(b => b.type === 'expense').reduce((s, b) => s + b.amount, 0)
-      cnt++
-      if (cnt === 7 || d === monthDates[monthDates.length - 1]) { groups.push({ ...cur }); wk++; cur = { label: 'W' + wk, income: 0, expense: 0 }; cnt = 0 }
-    })
-    return groups
-  }, [bills, monthDates])
+  // 一次性把 global store 读进来，后面的统计全部在内存里算
+  useEffect(() => {
+    if (!loaded) return
+    let alive = true
+    const load = async () => {
+      try {
+        const [rows, score] = await Promise.all([getAll('global'), getGlobal('totalScore')])
+        if (!alive) return
+        setGlobalRows(rows || [])
+        setStatV(prev => ({ ...prev, s: score || 0 }))
+      } catch (e) { console.error('Stats load error:', e) }
+    }
+    load()
+    return () => { alive = false }
+  }, [loaded])
 
-  const focusLine = useMemo(() => {
-    return monthDates.map(d => ({ label: d.slice(5), value: focusDiary.filter(f => f.date === d).reduce((s, f) => s + f.duration, 0) / 3600 }))
-  }, [focusDiary, monthDates])
+  // 打卡记录（键 -> 值）
+  const checkRecords = useMemo(
+    () => globalRows.filter(r => r && typeof r.key === 'string' && r.key.startsWith(CHECK_KEY_PREFIX)),
+    [globalRows]
+  )
 
-  const fmt = (n) => '¥' + n.toFixed(2)
-  const fmtD = (s) => s >= 3600 ? (s / 3600).toFixed(1) + 'h' : Math.round(s / 60) + 'm'
+  // 积分流水 / 趋势
+  const ledger = useMemo(
+    () => buildScoreLedger(checkRecords, habits, exchangeRecords),
+    [checkRecords, habits, exchangeRecords]
+  )
+
+  const trendDates = useMemo(() => {
+    if (timeFilter === '7d') return getRecentDates(today, 7)
+    if (timeFilter === 'thisMonth') return monthDates
+    if (timeFilter === 'all') {
+      const all = [...ledger.keys()].sort()
+      const start = all[0]
+      if (!start) return getRecentDates(today, 30)
+      // 上限 365 天，避免画布上挤成一片
+      const days = Math.min(
+        365,
+        Math.floor((new Date(today + 'T00:00:00') - new Date(start + 'T00:00:00')) / 86400000) + 1
+      )
+      return getRecentDates(today, Math.max(days, 2))
+    }
+    return getRecentDates(today, 30)
+  }, [timeFilter, today, monthDates, ledger])
+
+  const scoreTrend = useMemo(() => buildScoreTrend(ledger, trendDates), [ledger, trendDates])
+
+  // 月度汇总 + 打卡天数
+  const monthStat = useMemo(() => {
+    const mb = bills.filter(b => b.date >= monthRange.firstDay && b.date <= monthRange.lastDay)
+    const me = mb.filter(b => b.type === 'expense').reduce((s, b) => s + b.amount, 0)
+    const mi = mb.filter(b => b.type === 'income').reduce((s, b) => s + b.amount, 0)
+
+    // 打卡天数：只统计"正向习惯"被打卡的日期
+    const positiveIds = new Set(habits.filter(h => h.type === 'positive').map(h => h.id))
+    const days = new Set()
+    for (const rec of checkRecords) {
+      const parsed = parseCheckKey(rec.key)
+      if (parsed && positiveIds.has(parsed.habitId) && rec.value) days.add(parsed.dateStr)
+    }
+
+    return { me, mb: mi - me, cd: days.size, checkedDates: days }
+  }, [bills, habits, checkRecords, monthRange])
+
+  const checkData = useMemo(() => {
+    const map = {}
+    monthDates.forEach(d => { map[d] = monthStat.checkedDates.has(d) })
+    return map
+  }, [monthDates, monthStat])
+
+  const ringData = useMemo(
+    () => habits.filter(h => h.type === 'positive').map(h => ({ label: h.name, value: h.score || 5 })),
+    [habits]
+  )
+  const ringTotal = useMemo(() => ringData.reduce((s, d) => s + d.value, 0), [ringData])
+
+  // 近 6 个月收支（含当前月）
+  const monthBars = useMemo(() => {
+    const base = new Date(viewDate + 'T00:00:00')
+    const out = []
+    for (let i = 5; i >= 0; i--) {
+      const dt = new Date(base.getFullYear(), base.getMonth() - i, 1)
+      const { firstDay, lastDay } = getMonthRange(formatDate(dt))
+      let income = 0, expense = 0
+      for (const b of bills) {
+        if (b.date < firstDay || b.date > lastDay) continue
+        if (b.type === 'income') income += b.amount
+        else expense += b.amount
+      }
+      out.push({ label: `${dt.getMonth() + 1}月`, income, expense })
+    }
+    return out
+  }, [bills, viewDate])
+
+  // 存钱罐总体进度：已存（= 存钱罐净额）对比目标合计
+  const potStat = useMemo(() => {
+    const target = savingsGoals.reduce((s, g) => s + (g.target || 0), 0)
+    return { target, pct: target > 0 ? Math.min(1, savingsNet / target) : 0 }
+  }, [savingsGoals, savingsNet])
 
   if (!loaded) return <div className="loading">加载中...</div>
 
+  const hasTrend = scoreTrend.some(p => p.value > 0)
+
   return (
-    <div className="page-content" key={viewDate}>
+    <div className="page-content">
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         {[{ k: '7d', l: '7天' }, { k: '30d', l: '30天' }, { k: 'thisMonth', l: '本月' }, { k: 'all', l: '全部' }].map(f => (
           <button key={f.k} className={'btn btn-sm ' + (timeFilter === f.k ? 'btn-primary' : 'btn-outline')} onClick={() => setTimeFilter(f.k)}>{f.l}</button>
         ))}
       </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 12 }}>
-        <div className="summary-card" style={{ minWidth: 0 }}><div className="summary-value">{statV.s}</div><div className="summary-label">积分</div></div>
-        <div className="summary-card" style={{ minWidth: 0 }}><div className="summary-value">{statV.cd}</div><div className="summary-label">打卡天数</div></div>
-        <div className="summary-card" style={{ minWidth: 0 }}><div className="summary-value">{fmt(statV.me)}</div><div className="summary-label">月支出</div></div>
-        <div className="summary-card" style={{ minWidth: 0 }}><div className="summary-value">{fmtD(statV.tf)}</div><div className="summary-label">专注</div></div>
+        <div className="summary-card" style={{ minWidth: 0 }}><div className="summary-value">{statV.s}</div><div className="summary-label">当前积分</div></div>
+        <div className="summary-card" style={{ minWidth: 0 }}><div className="summary-value">{monthStat.cd}</div><div className="summary-label">累计打卡天数</div></div>
+        <div className="summary-card" style={{ minWidth: 0 }}><div className="summary-value">{fmtMoney(monthStat.me)}</div><div className="summary-label">本月支出</div></div>
+        <div className="summary-card" style={{ minWidth: 0 }}><div className="summary-value">{fmtMoneyShort(balance)}</div><div className="summary-label">可用余额</div></div>
       </div>
-      <div className="chart-card"><div className="chart-title">积分趋势</div>
-        {scoreTrend.length < 2 ? <div className="empty-state" style={{ padding: 16 }}><div className="empty-text">数据积累后显示</div></div> : <LineChart data={scoreTrend} color="#F2B8C6" />}
-      </div>
-      <div className="chart-card" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ flex: 1 }}><div className="chart-title">习惯分布</div></div>
-        <Donut data={ringData} total={ringTotal} />
-      </div>
+
       <div className="chart-card">
-        <div className="chart-title">周收支对比</div>
-        <WeekBar data={weekBars} />
+        <div className="chart-title">积分趋势</div>
+        {!hasTrend ? (
+          <div className="empty-state" style={{ padding: 16 }}><div className="empty-text">数据积累后显示</div></div>
+        ) : (
+          <>
+            <LineChart data={scoreTrend} color="#F2B8C6" themeKey={theme} />
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>
+              由打卡与兑换记录反推的累计净积分
+            </div>
+          </>
+        )}
       </div>
+
       <div className="chart-card">
-        <div className="chart-title">本月专注趋势</div>
-        {focusLine.every(f => f.value === 0) ? <div className="empty-state" style={{ padding: 16 }}><div className="empty-text">暂无专注数据</div></div> : <LineChart data={focusLine} color="#F8D2B8" />}
+        <div className="chart-title">习惯分值分布</div>
+        {ringTotal === 0 ? (
+          <div className="empty-state" style={{ padding: 16 }}><div className="empty-text">还没有正向习惯</div></div>
+        ) : (
+          <>
+            <Donut data={ringData} total={ringTotal} themeKey={theme} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: 10, justifyContent: 'center' }}>
+              {ringData.map((d, i) => (
+                <span key={d.label} style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <i style={{
+                    width: 8, height: 8, borderRadius: 2, display: 'inline-block',
+                    background: ['#F2B8C6', '#F8D2B8', '#B8E2D0', '#C4D7F0', '#DCC2F0', '#FCE4BA', '#F4ACAC', '#E8D0B8'][i % 8],
+                  }} />
+                  {d.label}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
       </div>
+
+      <div className="chart-card">
+        <div className="chart-title">近 6 个月收支</div>
+        {monthBars.every(m => m.income === 0 && m.expense === 0) ? (
+          <div className="empty-state" style={{ padding: 16 }}><div className="empty-text">还没有账单数据</div></div>
+        ) : (
+          <>
+            <WeekBar data={monthBars} themeKey={theme} />
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 6, fontSize: 11, color: 'var(--text-secondary)' }}>
+              <span><i style={{ width: 8, height: 8, borderRadius: 2, background: '#F4ACAC', display: 'inline-block', marginRight: 4 }} />支出</span>
+              <span><i style={{ width: 8, height: 8, borderRadius: 2, background: '#B8E2D0', display: 'inline-block', marginRight: 4 }} />收入</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="chart-card">
+        <div className="chart-title">存钱罐</div>
+        {savingsGoals.length === 0 ? (
+          <div className="empty-state" style={{ padding: 16 }}><div className="empty-text">还没有存钱计划</div></div>
+        ) : (
+          <>
+            <div className="pot-total">
+              <span className="pot-total-value">{fmtMoney(savingsNet)}</span>
+              <span className="pot-total-label">目标合计 {fmtMoney(potStat.target)}</span>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${potStat.pct * 100}%`, background: 'var(--primary)' }} />
+            </div>
+            <div className="pot-list">
+              {savingsGoals.map(g => {
+                const saved = savingsByGoal[g.id]?.saved || 0
+                const pct = g.target > 0 ? Math.min(1, saved / g.target) : 0
+                return (
+                  <div key={g.id} className="pot-row">
+                    <div className="pot-row-emoji" style={{ background: `${g.color}33` }}>{g.emoji}</div>
+                    <div className="pot-row-body">
+                      <div className="pot-row-head">
+                        <span className="pot-row-name">{g.name}</span>
+                        <span className="pot-row-amount">{g.status === 'done' ? '已达成' : `${Math.round(pct * 100)}%`}</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${pct * 100}%`, background: g.color }} />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="chart-card">
         <div className="chart-title">本月打卡日历</div>
-        <HabitGrid checkData={checkData} monthDates={monthDates} viewDate={viewDate} />
+        <HabitGrid checkData={checkData} monthDates={monthDates} themeKey={theme} />
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, textAlign: 'center' }}>
+          红色格 = 当天至少完成一项正向习惯
+        </div>
       </div>
     </div>
   )

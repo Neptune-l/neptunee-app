@@ -32,6 +32,8 @@ export const STORE_NAMES = {
   TASKS: 'tasks',
   BILLS: 'bills',
   CATEGORIES: 'categories',
+  SAVINGS: 'savingsGoals',
+  SAVINGS_RECORDS: 'savingsRecords',
   WISHES: 'wishes',
   EXCHANGE_RECORDS: 'exchangeRecords',
   FOCUS_DIARY: 'focusDiary',
@@ -72,15 +74,31 @@ export const FOCUS_WEEK_REWARD = 30
 export const FORGET_DAYS_WARN = 3
 export const FORGET_DAYS_CRITICAL = 7
 
-// 默认分类
+// 默认分类（首次启动时写入；已有数据不会被覆盖）
 export const DEFAULT_CATEGORIES = [
   { name: '餐饮', emoji: '🍜', color: '#F2B8C6', type: 'expense' },
   { name: '交通', emoji: '🚗', color: '#F8D2B8', type: 'expense' },
   { name: '购物', emoji: '🛍️', color: '#FCE4BA', type: 'expense' },
+  { name: '居住', emoji: '🏠', color: '#C4D7F0', type: 'expense' },
+  { name: '娱乐', emoji: '🎮', color: '#DCC2F0', type: 'expense' },
+  { name: '医疗', emoji: '💊', color: '#B8E2D0', type: 'expense' },
+  { name: '工资', emoji: '💰', color: '#B8E2D0', type: 'income' },
+  { name: '兼职', emoji: '🧾', color: '#C4D7F0', type: 'income' },
+  { name: '红包', emoji: '🧧', color: '#F4ACAC', type: 'income' },
 ]
 
 // 餐段选项
 export const MEAL_SLOTS = ['早', '午', '晚', '加餐']
+
+// 存钱罐预设 emoji
+export const SAVINGS_EMOJIS = [
+  '🐷', '🏦', '💰', '🎯', '✈️', '📱', '💻', '🚗', '🏠', '🎓',
+  '💍', '🎁', '🛡️', '📷', '🎸', '🛋️', '🧳', '🎮', '🐱', '🌏',
+  '☂️', '⚕️', '🧘', '🚲', '⌚️', '🎧', '🍜', '☕️', '🌱', '🧧',
+]
+
+// 存钱罐默认值
+export const DEFAULT_SAVINGS_EMOJI = '🐷'
 
 // Emoji 分类列表
 export const EMOJI_CATEGORIES = [

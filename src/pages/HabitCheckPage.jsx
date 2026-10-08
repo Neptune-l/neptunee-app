@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
-import { getToday, isToday, getFriendlyDate, getMonthRange } from '../utils/date'
+import { getToday, isToday, getFriendlyDate, getMonthRange, parseCheckKey } from '../utils/date'
 import { getAll } from '../store/db'
 import CalendarModal from '../components/CalendarModal'
 import ConfirmModal from '../components/ConfirmModal'
@@ -16,10 +16,15 @@ export default function HabitCheckPage({ openSubpage }) {
   const [statusVersion, setStatusVersion] = useState(0)
   const [editingHabit, setEditingHabit] = useState(null)
   const longPressTimer = useRef(null)
+  const longPressed = useRef(false)
   const [restraintStats, setRestraintStats] = useState({ thisMonth: 0, lastMonth: 0 })
   const today = getToday()
   const isViewToday = viewDate === today
   const monthRange = getMonthRange(viewDate)
+  // 依赖项用字符串而不是对象，否则每次渲染都会产生新引用
+  const monthKey = monthRange.firstDay.slice(0, 7)
+  const monthFirstDay = monthRange.firstDay
+  const monthLastDay = monthRange.lastDay
 
   useEffect(() => {
     if (!loaded) return
@@ -37,27 +42,28 @@ export default function HabitCheckPage({ openSubpage }) {
     const loadStats = async () => {
       try {
         const g = await getAll('global')
-        const checkKeys = g.filter(x => x.key && x.key.startsWith('check_'))
         const restraintHabits = habits.filter(h => h.type === 'restraint')
-        const m = monthRange.firstDay.slice(0, 7)
-        const prevM = (parseInt(m.split('-')[1]) - 1 || 12).toString().padStart(2, '0')
-        const prevY = prevM === '12' ? parseInt(m.split('-')[0]) - 1 : parseInt(m.split('-')[0])
+        if (restraintHabits.length === 0) { setRestraintStats({ thisMonth: 0, lastMonth: 0 }); return }
+
+        const ids = new Set(restraintHabits.map(h => h.id))
+        const [y, m] = monthKey.split('-')
+        const prevMonthNum = Number(m) === 1 ? 12 : Number(m) - 1
+        const prevMonthKey = `${Number(m) === 1 ? Number(y) - 1 : Number(y)}-${String(prevMonthNum).padStart(2, '0')}`
+
         let thisC = 0, lastC = 0
-        for (const rh of restraintHabits) {
-          for (const ck of checkKeys) {
-            const parts = ck.key.split('_')
-            if (parts.length === 3 && parts[2] === rh.id) {
-              const dateStr = parts[1]
-              if (dateStr.startsWith(m)) thisC += ck.value
-              else if (dateStr.startsWith(prevY + '-' + prevM)) lastC += ck.value
-            }
-          }
+        for (const rec of g) {
+          // 这里必须用 parseCheckKey：habitId 自带下划线，split('_') 会解析失败
+          const parsed = parseCheckKey(rec?.key)
+          if (!parsed || !ids.has(parsed.habitId)) continue
+          const n = Number(rec.value) || 0
+          if (parsed.dateStr.startsWith(monthKey)) thisC += n
+          else if (parsed.dateStr.startsWith(prevMonthKey)) lastC += n
         }
         setRestraintStats({ thisMonth: thisC, lastMonth: lastC })
       } catch (e) { console.error(e) }
     }
     loadStats()
-  }, [loaded, habits, monthRange, statusVersion])
+  }, [loaded, habits, monthKey, statusVersion])
 
   const filteredHabits = useMemo(() => {
     return habits.filter(h => {
@@ -86,6 +92,18 @@ export default function HabitCheckPage({ openSubpage }) {
     if (habit.type === 'positive' && s.checked) { setConfirmAction({ message: '是否取消本次记录？积分将同步调整', onConfirm: async () => { await uncheckHabit(habit.id, viewDate); showGlobalToast('已取消打卡'); setStatusVersion(v => v + 1); setConfirmAction(null) }, onCancel: () => setConfirmAction(null) }) }
     else if (habit.type === 'restraint' && s.count > 0) { setConfirmAction({ message: '是否取消本次记录？积分将同步调整', onConfirm: async () => { await uncheckHabit(habit.id, viewDate); showGlobalToast('已取消记录'); setStatusVersion(v => v + 1); setConfirmAction(null) }, onCancel: () => setConfirmAction(null) }) }
   }, [habitStatuses, uncheckHabit, viewDate])
+
+  // 长按已触发时，手指抬起产生的 click 要吞掉，否则会"取消完立刻又打卡"
+  const handleTap = useCallback((habit) => {
+    if (longPressed.current) { longPressed.current = false; return }
+    handleAction(habit)
+  }, [handleAction])
+
+  const cancelLongPress = useCallback(() => {
+    clearTimeout(longPressTimer.current)
+  }, [])
+
+  useEffect(() => () => clearTimeout(longPressTimer.current), [])
 
   if (!loaded) return <div className="loading">加载中...</div>
 
@@ -133,14 +151,18 @@ export default function HabitCheckPage({ openSubpage }) {
             if (habit.frequency) { if (habit.frequency.type === 'weekly') freqLabel = '每周' + (habit.frequency.days?.length || 0) + '次'; else if (habit.frequency.type === 'biweekly') freqLabel = '每' + (habit.frequency.interval || 2) + '周' + (habit.frequency.days?.length || 1) + '次'; else if (habit.frequency.type === 'monthly') freqLabel = '每月打卡' }
             return (
               <div key={habit.id} className="list-item" style={{ opacity: isChecked ? 0.7 : 1, cursor: 'pointer' }}
-                onClick={() => handleAction(habit)} onContextMenu={(e) => { e.preventDefault(); handleLongPress(habit) }} onTouchStart={() => { longPressTimer.current = setTimeout(() => handleLongPress(habit), 600) }} onTouchEnd={() => { clearTimeout(longPressTimer.current) }} onTouchMove={() => { clearTimeout(longPressTimer.current) }}>
+                onClick={() => handleTap(habit)}
+                onContextMenu={(e) => { e.preventDefault(); longPressed.current = false; handleLongPress(habit) }}
+                onTouchStart={() => { longPressed.current = false; longPressTimer.current = setTimeout(() => { longPressed.current = true; handleLongPress(habit) }, 600) }}
+                onTouchEnd={cancelLongPress} onTouchMove={cancelLongPress} onTouchCancel={cancelLongPress}>
                 <div className="item-icon" style={{ background: (habit.color || '#F2B8C6') + '33' }}>{habit.emoji || (habit.type === 'positive' ? '💪' : '🛡️')}</div>
                 <div className="item-content"><div className="item-title">{habit.name}</div>
                   <div className="item-sub">{habit.type === 'positive' ? '+' + (habit.score || 5) + '分 · ' + freqLabel : '-' + (habit.score || 3) + '分'}</div>
                 </div>
                 <div className="item-right" style={{ gap: 4, display: 'flex', alignItems: 'center' }}>
-                  {habit.type === 'positive' ? <div className={'checkbox-round' + (isChecked ? ' checked' : '')} /> :
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: rc > 0 ? 'var(--danger)' : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'white' }}>{rc > 0 ? '×' + rc : '🛡️'}</div>}
+                  {habit.type === 'positive'
+                    ? <button type="button" className={'checkbox-round' + (isChecked ? ' checked' : '')} aria-label={`打卡：${habit.name}`} />
+                    : <div style={{ width: 28, height: 28, borderRadius: '50%', background: rc > 0 ? 'var(--danger)' : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'white' }}>{rc > 0 ? '×' + rc : '🛡️'}</div>}
                   <button className="btn btn-sm btn-outline" style={{ padding: '2px 6px', fontSize: 11 }} onClick={(e) => { e.stopPropagation(); setEditingHabit(habit) }}>编辑</button>
                 </div>
               </div>
