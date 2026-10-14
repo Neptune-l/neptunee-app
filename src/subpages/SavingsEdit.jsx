@@ -1,8 +1,12 @@
 import React, { useState } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
 import { fmtMoney, round2, parseAmount } from '../utils/money'
-import { SAVINGS_EMOJIS, MACARON_COLORS, DEFAULT_SAVINGS_EMOJI, DEFAULT_COLOR } from '../utils/constants'
+import { MACARON_COLORS, SAVINGS_ICON_PRESETS, DEFAULT_SAVINGS_EMOJI, DEFAULT_COLOR } from '../utils/constants'
 import { macaronKeyOf } from '../utils/palette'
+import IconPicker from '../components/IconPicker'
+import Icon from '../components/Icon'
+
+/** 存钱场景常用图标见 constants.js 的 SAVINGS_ICON_PRESETS，点「更多」可开全部 174 个 */
 
 /**
  * 新建 / 编辑存钱目标
@@ -13,12 +17,19 @@ export default function SavingsEdit({ goal, onClose }) {
   const editing = !!goal
 
   const [emoji, setEmoji] = useState(goal?.emoji || DEFAULT_SAVINGS_EMOJI)
+  const [icon, setIcon] = useState(goal?.icon || null)
   const [color, setColor] = useState(goal?.color || DEFAULT_COLOR)
   const [name, setName] = useState(goal?.name || '')
   const [target, setTarget] = useState(goal?.target ? String(goal.target) : '')
   const [hasDeadline, setHasDeadline] = useState(!!goal?.deadline)
   const [deadline, setDeadline] = useState(goal?.deadline || '')
   const [note, setNote] = useState(goal?.note || '')
+  const [showIconPicker, setShowIconPicker] = useState(false)
+
+  const handleIconSelect = ({ type, value }) => {
+    if (type === 'icon') { setIcon(value); setEmoji('') }
+    else { setEmoji(value); setIcon(null) }
+  }
 
   const handleSave = async () => {
     const trimmed = name.trim()
@@ -30,6 +41,7 @@ export default function SavingsEdit({ goal, onClose }) {
     const payload = {
       name: trimmed,
       emoji,
+      icon,
       color,
       target: round2(targetNum),
       deadline: hasDeadline ? deadline : null,
@@ -50,14 +62,16 @@ export default function SavingsEdit({ goal, onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">{editing ? '编辑存钱计划' : '🐷 新建存钱计划'}</span>
+        <span className="subpage-title">{editing ? '编辑存钱计划' : '新建存钱计划'}</span>
         <button className="btn btn-primary btn-sm" onClick={handleSave}>{editing ? '保存' : '创建'}</button>
       </div>
 
       <div className="subpage-body">
         {/* 预览 */}
         <div className="savings-preview" data-mc={macaronKeyOf(color, 0)}>
-          <div className="savings-preview-emoji" style={{ borderColor: color }}>{emoji}</div>
+          <div className="savings-preview-emoji" style={{ borderColor: color }}>
+            <Icon name={icon} emoji={emoji} size={28} />
+          </div>
           <div>
             <div className="savings-preview-name">{name.trim() || '存钱计划'}</div>
             <div className="savings-preview-target">
@@ -109,30 +123,43 @@ export default function SavingsEdit({ goal, onClose }) {
         </div>
 
         {/* 图标 */}
-        <div className="section-header"><span className="section-title">图标</span></div>
+        <div className="section-header">
+          <span className="section-title">图标</span>
+          <button type="button" className="link-btn" onClick={() => setShowIconPicker(true)}>更多</button>
+        </div>
         <div className="emoji-strip" style={{ marginBottom: 20 }}>
-          {SAVINGS_EMOJIS.map(item => (
+          {SAVINGS_ICON_PRESETS.map(slug => (
             <button
-              key={item}
+              key={slug}
               type="button"
-              className={`emoji-strip-item${emoji === item ? ' active' : ''}`}
-              onClick={() => setEmoji(item)}
+              className={`emoji-strip-item${icon === slug ? ' active' : ''}`}
+              aria-label={slug}
+              onClick={() => { setIcon(slug); setEmoji('') }}
             >
-              {item}
+              <Icon name={slug} size={26} />
             </button>
           ))}
+          <button
+            type="button"
+            className="emoji-strip-item"
+            aria-label="更多图标"
+            onClick={() => setShowIconPicker(true)}
+          >
+            <span style={{ fontSize: 20, color: 'var(--text-secondary)' }}>⋯</span>
+          </button>
         </div>
 
         {/* 颜色 */}
         <div className="section-header"><span className="section-title">主题色</span></div>
         <div className="color-strip" style={{ marginBottom: 20 }}>
-          {MACARON_COLORS.slice(0, 12).map(item => (
+          {MACARON_COLORS.map(item => (
             <button
               key={item}
               type="button"
               className={`color-strip-item${color === item ? ' active' : ''}`}
               style={{ background: item }}
               aria-label={`选择颜色 ${item}`}
+              aria-pressed={color === item}
               onClick={() => setColor(item)}
             />
           ))}
@@ -177,6 +204,14 @@ export default function SavingsEdit({ goal, onClose }) {
 
         <div style={{ height: 40 }} />
       </div>
+
+      {showIconPicker && (
+        <IconPicker
+          current={icon ? { type: 'icon', value: icon } : { type: 'emoji', value: emoji }}
+          onSelect={handleIconSelect}
+          onClose={() => setShowIconPicker(false)}
+        />
+      )}
     </div>
   )
 }

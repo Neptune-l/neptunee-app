@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useApp } from '../store/store'
 import { getMonthRange } from '../utils/date'
 import BillDetail from './BillDetail'
+import Icon from '../components/Icon'
 import { macaronKeyOf } from '../utils/palette'
 
 export default function CategoryBills({ categoryId, viewDate, onClose }) {
@@ -31,7 +32,9 @@ export default function CategoryBills({ categoryId, viewDate, onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">{cat?.emoji} {cat?.name}</span>
+        <span className="subpage-title">
+          <Icon name={cat?.icon} emoji={cat?.emoji} size={17} className="title-icon" />{cat?.name}
+        </span>
       </div>
 
       <div className="subpage-body">
@@ -54,7 +57,7 @@ export default function CategoryBills({ categoryId, viewDate, onClose }) {
           filteredBills.map(bill => (
             <div key={bill.id} className="list-item" onClick={() => setEditingBill(bill)}>
               <div className="item-icon" data-mc={macaronKeyOf(cat?.color, 0)}>
-                {cat?.emoji || '💰'}
+                <Icon name={cat?.icon} emoji={cat?.emoji || '💰'} size={24} />
               </div>
               <div className="item-content">
                 <div className="item-title">{bill.date}</div>

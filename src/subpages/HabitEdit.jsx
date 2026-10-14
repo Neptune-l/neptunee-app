@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
-import EmojiPicker from '../components/EmojiPicker'
-import ColorPicker from '../components/ColorPicker'
+import IconPicker from '../components/IconPicker'
+import Icon from '../components/Icon'
 import ConfirmModal from '../components/ConfirmModal'
-import { DEFAULT_EMOJI, DEFAULT_COLOR } from '../utils/constants'
+import { DEFAULT_EMOJI, DEFAULT_COLOR, MACARON_COLORS } from '../utils/constants'
+import { DEFAULT_ICON } from '../utils/icons'
 
 const WEEKDAYS_SHORT = ['日', '一', '二', '三', '四', '五', '六']
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -16,10 +17,15 @@ export default function HabitEdit({ habit, onClose }) {
   const [type, setType] = useState(habit?.type || 'positive')
   const [score, setScore] = useState(habit?.score || 5)
   const [emoji, setEmoji] = useState(habit?.emoji || DEFAULT_EMOJI)
+  const [icon, setIcon] = useState(habit ? (habit.icon || null) : DEFAULT_ICON)
   const [color, setColor] = useState(habit?.color || DEFAULT_COLOR)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [showIconPicker, setShowIconPicker] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const handleIconSelect = ({ type, value }) => {
+    if (type === 'icon') { setIcon(value); setEmoji('') }
+    else { setEmoji(value); setIcon(null) }
+  }
 
   // 频率设置
   const [freqType, setFreqType] = useState(habit?.frequency?.type || 'daily')
@@ -54,7 +60,7 @@ export default function HabitEdit({ habit, onClose }) {
 
     const data = {
       name: name.trim(), type, score: Number(score),
-      emoji, color, frequency,
+      emoji, icon, color, frequency,
       createTime: habit?.createTime || Date.now(),
     }
 
@@ -74,23 +80,30 @@ export default function HabitEdit({ habit, onClose }) {
       </div>
 
       <div className="subpage-body">
-        {/* 图标+颜色 */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-          <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => setShowEmojiPicker(true)}>
-            <span className="form-label" style={{ margin: 0 }}>图标</span>
-            <span style={{ fontSize: 36 }}>{emoji}</span>
-          </div>
-          <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => setShowColorPicker(true)}>
-            <span className="form-label" style={{ margin: 0 }}>颜色</span>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: color }} />
-          </div>
-        </div>
-
-        {/* 名称 */}
+        {/* 图标 + 名称 + 主题色，合一张卡 */}
         <div className="card card-section">
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">习惯名称</label>
-            <input className="form-input" placeholder="输入习惯名称，比如：喝8杯水" value={name} onChange={e => setName(e.target.value)} maxLength={30} />
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div className="icon-preview" onClick={() => setShowIconPicker(true)} title="点击更换图标">
+              <Icon name={icon} emoji={emoji} size={30} />
+            </div>
+            <input className="form-input" placeholder="输入习惯名称，比如：喝8杯水" value={name} onChange={e => setName(e.target.value)} maxLength={30} style={{ flex: 1 }} />
+          </div>
+
+          <div className="section-header" style={{ margin: '12px 0 8px' }}>
+            <span className="section-title" style={{ fontSize: 13 }}>主题色</span>
+          </div>
+          <div className="color-strip">
+            {MACARON_COLORS.map(item => (
+              <button
+                key={item}
+                type="button"
+                className={`color-strip-item${color === item ? ' active' : ''}`}
+                style={{ background: item }}
+                aria-label={`选择颜色 ${item}`}
+                aria-pressed={color === item}
+                onClick={() => setColor(item)}
+              />
+            ))}
           </div>
         </div>
 
@@ -183,8 +196,13 @@ export default function HabitEdit({ habit, onClose }) {
         {isEdit && <button className="delete-btn mt-16" onClick={() => setShowDeleteConfirm(true)}>删除该习惯</button>}
       </div>
 
-      {showEmojiPicker && <EmojiPicker onSelect={setEmoji} onClose={() => setShowEmojiPicker(false)} />}
-      {showColorPicker && <ColorPicker currentColor={color} onSelect={setColor} onClose={() => setShowColorPicker(false)} />}
+      {showIconPicker && (
+        <IconPicker
+          current={icon ? { type: 'icon', value: icon } : { type: 'emoji', value: emoji }}
+          onSelect={handleIconSelect}
+          onClose={() => setShowIconPicker(false)}
+        />
+      )}
       {showDeleteConfirm && (
         <ConfirmModal message="删除后该习惯及所有历史记录将无法恢复，是否确认？" icon="⚠️"
           onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} />

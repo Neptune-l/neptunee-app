@@ -4,6 +4,7 @@ import { getFriendlyDate, getToday, getMonthRange } from '../utils/date'
 import { fmtMoney, fmtMoneyShort, round2 } from '../utils/money'
 import CalendarModal from '../components/CalendarModal'
 import ConfirmModal from '../components/ConfirmModal'
+import Icon from '../components/Icon'
 import BillNew from '../subpages/BillNew'
 import BillDetail from '../subpages/BillDetail'
 import CategoryManage from '../subpages/CategoryManage'
@@ -157,7 +158,7 @@ export default function Accounting({ openSubpage }) {
                   return (
                     <div key={bill.id} className="list-item compact" onClick={() => setEditingBill(bill)}>
                       <div className="item-icon" data-mc={macaronKeyOf(cat?.color, idx)}>
-                        {cat?.emoji || '💰'}
+                        <Icon name={cat?.icon} emoji={cat?.emoji || '💰'} size={24} />
                       </div>
                       <div className="item-content">
                         <div className="item-title">{cat?.name || '未分类'}</div>
@@ -207,7 +208,7 @@ export default function Accounting({ openSubpage }) {
                   return (
                     <div key={s.catId} className="list-item compact" data-mc={macaronKeyOf(s.cat.color, idx)} onClick={() => openSubpage(CategoryBills, { categoryId: s.catId, viewDate })}>
                       <div className="item-icon" data-mc={macaronKeyOf(s.cat.color, idx)}>
-                        {s.cat.emoji}
+                        <Icon name={s.cat.icon} emoji={s.cat.emoji} size={24} />
                       </div>
                       <div className="item-content">
                         <div className="item-title">{s.cat.name}</div>
@@ -239,7 +240,7 @@ export default function Accounting({ openSubpage }) {
                   return (
                     <div key={s.catId} className="list-item compact" data-mc={macaronKeyOf(s.cat.color, idx)} onClick={() => openSubpage(CategoryBills, { categoryId: s.catId, viewDate })}>
                       <div className="item-icon" data-mc={macaronKeyOf(s.cat.color, idx)}>
-                        {s.cat.emoji}
+                        <Icon name={s.cat.icon} emoji={s.cat.emoji} size={24} />
                       </div>
                       <div className="item-content">
                         <div className="item-title">{s.cat.name}</div>
@@ -296,7 +297,9 @@ export default function Accounting({ openSubpage }) {
                       onClick={() => openSubpage(SavingsDetail, { goalId: goal.id })}
                     >
                       <div className="savings-card-head">
-                        <div className="savings-card-emoji" data-mc={macaronKeyOf(goal.color, idx)}>{goal.emoji}</div>
+                        <div className="savings-card-emoji" data-mc={macaronKeyOf(goal.color, idx)}>
+                          <Icon name={goal.icon} emoji={goal.emoji} size={26} />
+                        </div>
                         <div className="savings-card-info">
                           <div className="savings-card-name">
                             {goal.name}

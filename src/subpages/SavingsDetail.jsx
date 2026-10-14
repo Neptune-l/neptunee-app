@@ -3,6 +3,7 @@ import { useApp, showGlobalToast } from '../store/store'
 import { fmtMoney, round2, parseAmount, diffDays } from '../utils/money'
 import { getToday, getFriendlyDate } from '../utils/date'
 import ConfirmModal from '../components/ConfirmModal'
+import Icon from '../components/Icon'
 import SavingsEdit from './SavingsEdit'
 
 /** 存钱计划详情：进度、存入/取出、流水 */
@@ -113,7 +114,9 @@ export default function SavingsDetail({ goalId, onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">{goal.emoji} {goal.name}</span>
+        <span className="subpage-title">
+          <Icon name={goal.icon} emoji={goal.emoji} size={17} className="title-icon" />{goal.name}
+        </span>
         <button className="btn btn-outline btn-sm" onClick={() => setShowEdit(true)}>编辑</button>
       </div>
 
@@ -134,7 +137,7 @@ export default function SavingsDetail({ goalId, onClose }) {
             </svg>
             <div className="savings-ring-center">
               <div className="savings-ring-pct">{Math.round(view.pct * 100)}%</div>
-              <div className="savings-ring-emoji">{goal.emoji}</div>
+              <div className="savings-ring-emoji"><Icon name={goal.icon} emoji={goal.emoji} size={22} /></div>
             </div>
           </div>
           <div className="savings-hero-info">

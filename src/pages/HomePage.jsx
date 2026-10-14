@@ -4,6 +4,7 @@ import { getToday, getFriendlyDate } from '../utils/date'
 import { fmtMoney, fmtMoneyShort, round2 } from '../utils/money'
 import CalendarModal from '../components/CalendarModal'
 import ConfirmModal from '../components/ConfirmModal'
+import Icon from '../components/Icon'
 import TaskEdit from '../subpages/TaskEdit'
 import AssetsManage from '../subpages/AssetsManage'
 import { PET_SPECIES, PET_STATE_META } from '../utils/petConstants'
@@ -254,7 +255,9 @@ export default function HomePage({ openSubpage }) {
                 const streak = getHabitStreak(habit.id, viewDate)
                 return (
                   <div key={habit.id} className="list-item compact" onClick={() => handleHabitTap(habit)}>
-                    <div className="item-icon" data-mc={macaronKeyOf(habit.color, i)}>{habit.emoji || '💪'}</div>
+                    <div className="item-icon" data-mc={macaronKeyOf(habit.color, i)}>
+                      <Icon name={habit.icon} emoji={habit.emoji || '💪'} size={24} />
+                    </div>
                     <div className="item-content">
                       <div className="item-title">
                         {habit.name}
@@ -283,7 +286,7 @@ export default function HomePage({ openSubpage }) {
                     onClick={() => handleHabitTap(habit)}
                   >
                     {streak >= 2 && <span className="cell-streak">🔥{streak}</span>}
-                    <span className="cell-emoji">{habit.emoji || '💪'}</span>
+                    <span className="cell-emoji"><Icon name={habit.icon} emoji={habit.emoji || '💪'} size={22} /></span>
                     <span className="cell-name">{habit.name}</span>
                     <span className="cell-mark">✓</span>
                   </button>

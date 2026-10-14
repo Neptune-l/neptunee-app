@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
 import ConfirmModal from '../components/ConfirmModal'
+import Icon from '../components/Icon'
 import { macaronKeyOf } from '../utils/palette'
 
 export default function BillDetail({ bill, onClose }) {
@@ -84,7 +85,7 @@ export default function BillDetail({ bill, onClose }) {
                     aria-pressed={categoryId === cat.id}
                     onClick={() => setCategoryId(cat.id)}
                   >
-                    <span className="chip-emoji">{cat.emoji}</span>
+                    <Icon name={cat.icon} emoji={cat.emoji} size={17} className="chip-emoji" />
                     <span className="chip-name">{cat.name}</span>
                   </button>
                 ))}

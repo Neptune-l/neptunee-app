@@ -4,6 +4,7 @@ import { getToday, getRecentDates, getMonthRange, formatDate, parseCheckKey, CHE
 import { buildScoreLedger, buildScoreTrend } from '../utils/score'
 import { getAll, getGlobal } from '../store/db'
 import { fmtMoney, fmtMoneyShort } from '../utils/money'
+import Icon from '../components/Icon'
 import { macaronByIndex, macaronKeyOf } from '../utils/palette'
 
 /* ===== 工具 ===== */
@@ -491,7 +492,9 @@ export default function Statistics() {
                 const pct = g.target > 0 ? Math.min(1, saved / g.target) : 0
                 return (
                   <div key={g.id} className="pot-row" data-mc={macaronKeyOf(g.color, idx)}>
-                    <div className="pot-row-emoji" data-mc={macaronKeyOf(g.color, idx)}>{g.emoji}</div>
+                    <div className="pot-row-emoji" data-mc={macaronKeyOf(g.color, idx)}>
+                      <Icon name={g.icon} emoji={g.emoji} size={16} />
+                    </div>
                     <div className="pot-row-body">
                       <div className="pot-row-head">
                         <span className="pot-row-name">{g.name}</span>

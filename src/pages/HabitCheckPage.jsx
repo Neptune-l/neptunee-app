@@ -4,6 +4,7 @@ import { getToday, isToday, getFriendlyDate, getMonthRange, parseCheckKey } from
 import { getAll } from '../store/db'
 import CalendarModal from '../components/CalendarModal'
 import ConfirmModal from '../components/ConfirmModal'
+import Icon from '../components/Icon'
 import HabitEdit from '../subpages/HabitEdit'
 import { macaronKeyOf } from '../utils/palette'
 
@@ -156,7 +157,9 @@ export default function HabitCheckPage({ openSubpage }) {
                 onContextMenu={(e) => { e.preventDefault(); longPressed.current = false; handleLongPress(habit) }}
                 onTouchStart={() => { longPressed.current = false; longPressTimer.current = setTimeout(() => { longPressed.current = true; handleLongPress(habit) }, 600) }}
                 onTouchEnd={cancelLongPress} onTouchMove={cancelLongPress} onTouchCancel={cancelLongPress}>
-                <div className="item-icon" data-mc={macaronKeyOf(habit.color, i)}>{habit.emoji || (habit.type === 'positive' ? '💪' : '🛡️')}</div>
+                <div className="item-icon" data-mc={macaronKeyOf(habit.color, i)}>
+                  <Icon name={habit.icon} emoji={habit.emoji || (habit.type === 'positive' ? '💪' : '🛡️')} size={24} />
+                </div>
                 <div className="item-content"><div className="item-title">{habit.name}</div>
                   <div className="item-sub">{habit.type === 'positive' ? '+' + (habit.score || 5) + '分 · ' + freqLabel : '-' + (habit.score || 3) + '分'}</div>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
 import { getToday } from '../utils/date'
+import Icon from '../components/Icon'
 import { macaronKeyOf } from '../utils/palette'
 
 // 数字键盘最多允许 9 位（含小数点后两位），避免长按乱输
@@ -167,7 +168,7 @@ export default function BillNew({ onClose }) {
                     aria-pressed={categoryId === cat.id}
                     onClick={() => pickCategory(cat.id)}
                   >
-                    <span className="chip-emoji">{cat.emoji}</span>
+                    <Icon name={cat.icon} emoji={cat.emoji} size={17} className="chip-emoji" />
                     <span className="chip-name">{cat.name}</span>
                   </button>
                 ))}

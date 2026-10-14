@@ -9,8 +9,11 @@
  * `--m-fill` / `--m-ink`，元素直接用即可，不需要在 JSX 里拼颜色。
  */
 
-/** 10 组马卡龙，顺序即调色板的排列顺序 */
-export const MACARON_KEYS = ['rose', 'peach', 'butter', 'mint', 'sage', 'sky', 'lilac', 'peri', 'coral', 'pink']
+/** 20 组马卡龙，顺序即调色板的排列顺序 */
+export const MACARON_KEYS = [
+  'rose', 'peach', 'butter', 'mint', 'sage', 'sky', 'lilac', 'peri', 'coral', 'pink',
+  'teal', 'aqua', 'indigo', 'mauve', 'berry', 'lime', 'olive', 'cocoa', 'slate', 'sand',
+]
 
 /**
  * fill  亮色模式的填充
@@ -29,6 +32,16 @@ export const MACARON = {
   peri: { fill: '#A2C1EC', ink: '#2C559E', dFill: '#1E2E4A', dInk: '#9BBCF0' },
   coral: { fill: '#FED5D5', ink: '#AE4343', dFill: '#3A2323', dInk: '#FF9E9E' },
   pink: { fill: '#FEB5BE', ink: '#B33A55', dFill: '#3A2029', dInk: '#FF9DB0' },
+  teal: { fill: '#CDF3F0', ink: '#1E8076', dFill: '#173B37', dInk: '#82EDE2' },
+  aqua: { fill: '#CAEDF6', ink: '#1D7C96', dFill: '#16333B', dInk: '#80D7EF' },
+  indigo: { fill: '#D4D5F2', ink: '#5E62D4', dFill: '#181939', dInk: '#8689E9' },
+  mauve: { fill: '#EDD2F4', ink: '#AD42C8', dFill: '#321939', dInk: '#D488E7' },
+  berry: { fill: '#F6D0EB', ink: '#C7329B', dFill: '#3A1830', dInk: '#EB84CC' },
+  lime: { fill: '#EAF4C7', ink: '#657A1D', dFill: '#323B17', dInk: '#D4ED82' },
+  olive: { fill: '#D7E7C5', ink: '#587D2F', dFill: '#2A361C', dInk: '#BADE91' },
+  cocoa: { fill: '#EDDED4', ink: '#996645', dFill: '#34271E', dInk: '#D8B197' },
+  slate: { fill: '#DAE3E7', ink: '#51778B', dFill: '#212B30', dInk: '#A1BFCE' },
+  sand: { fill: '#F0E9D6', ink: '#857133', dFill: '#362F1C', dInk: '#DECB91' },
 }
 
 /** 旧版 20 色 → 新 key。老数据里存的都是这批值，显式映射比算距离准 */

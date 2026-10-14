@@ -77,6 +77,16 @@
   --m-peri: #A2C1EC;
   --m-coral: #FED5D5;
   --m-pink: #FEB5BE;
+  --m-teal: #CDF3F0;
+  --m-aqua: #CAEDF6;
+  --m-indigo: #D4D5F2;
+  --m-mauve: #EDD2F4;
+  --m-berry: #F6D0EB;
+  --m-lime: #EAF4C7;
+  --m-olive: #D7E7C5;
+  --m-cocoa: #EDDED4;
+  --m-slate: #DAE3E7;
+  --m-sand: #F0E9D6;
   /* 马卡龙功能色：深同伴 */
   --m-rose-i: #BE4568;
   --m-peach-i: #B25429;
@@ -88,6 +98,16 @@
   --m-peri-i: #2C559E;
   --m-coral-i: #AE4343;
   --m-pink-i: #B33A55;
+  --m-teal-i: #1E8076;
+  --m-aqua-i: #1D7C96;
+  --m-indigo-i: #5E62D4;
+  --m-mauve-i: #AD42C8;
+  --m-berry-i: #C7329B;
+  --m-lime-i: #657A1D;
+  --m-olive-i: #587D2F;
+  --m-cocoa-i: #996645;
+  --m-slate-i: #51778B;
+  --m-sand-i: #857133;
 }
 
 [data-theme="dark"] {
@@ -239,6 +259,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .emoji-picker-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
 .emoji-item { font-size: 28px; display: flex; align-items: center; justify-content: center; aspect-ratio: 1; border-radius: var(--radius-tag); cursor: pointer; border: none; background: transparent; }
 .emoji-item:active { background: var(--border); transform: scale(1.15); }
+.emoji-item.active { background: var(--primary-soft); box-shadow: inset 0 0 0 1.5px var(--primary-ink); }
 
 .color-picker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 16px; }
 .color-swatch { aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
@@ -520,8 +541,10 @@ select.form-input { appearance: none; background-image: linear-gradient(45deg, t
 .emoji-strip-item:active { transform: scale(0.92); }
 .emoji-strip-item.active { border-color: var(--primary-ink); }
 
-.color-strip { display: flex; gap: 8px; flex-wrap: wrap; padding: 2px 4px; }
-.color-strip-item { width: 32px; height: 32px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; flex-shrink: 0; transition: all 0.12s; }
+/* 色条：横向滑动，装得下 20 色 */
+.color-strip { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 4px 6px; scroll-snap-type: x proximity; }
+.color-strip::-webkit-scrollbar { display: none; }
+.color-strip-item { width: 32px; height: 32px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; flex-shrink: 0; scroll-snap-align: start; transition: all 0.12s; }
 .color-strip-item:active { transform: scale(0.9); }
 .color-strip-item.active { border-color: var(--text-primary); transform: scale(1.08); }
 
@@ -657,6 +680,16 @@ select.form-input { appearance: none; background-image: linear-gradient(45deg, t
 [data-mc="peri"]   { --m-fill: var(--m-peri);   --m-ink: var(--m-peri-i); }
 [data-mc="coral"]  { --m-fill: var(--m-coral);  --m-ink: var(--m-coral-i); }
 [data-mc="pink"]   { --m-fill: var(--m-pink);   --m-ink: var(--m-pink-i); }
+[data-mc="teal"]   { --m-fill: var(--m-teal);   --m-ink: var(--m-teal-i); }
+[data-mc="aqua"]   { --m-fill: var(--m-aqua);   --m-ink: var(--m-aqua-i); }
+[data-mc="indigo"] { --m-fill: var(--m-indigo); --m-ink: var(--m-indigo-i); }
+[data-mc="mauve"]  { --m-fill: var(--m-mauve);  --m-ink: var(--m-mauve-i); }
+[data-mc="berry"]  { --m-fill: var(--m-berry);  --m-ink: var(--m-berry-i); }
+[data-mc="lime"]   { --m-fill: var(--m-lime);   --m-ink: var(--m-lime-i); }
+[data-mc="olive"]  { --m-fill: var(--m-olive);  --m-ink: var(--m-olive-i); }
+[data-mc="cocoa"]  { --m-fill: var(--m-cocoa);  --m-ink: var(--m-cocoa-i); }
+[data-mc="slate"]  { --m-fill: var(--m-slate);  --m-ink: var(--m-slate-i); }
+[data-mc="sand"]   { --m-fill: var(--m-sand);   --m-ink: var(--m-sand-i); }
 
 /* ---------- 2. 发丝线：所有「一张卡」统一加 1px 边 ---------- */
 .settings-item, .goal-card, .savings-card, .savings-hero, .savings-stat,

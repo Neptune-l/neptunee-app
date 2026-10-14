@@ -91,7 +91,7 @@ export default function TaskEdit({ task, onClose }) {
                 <select className="form-input" value={linkedHabitId} onChange={e => setLinkedHabitId(e.target.value)}>
                   <option value="">不关联</option>
                   {positiveHabits.map(h => (
-                    <option key={h.id} value={h.id}>{h.emoji} {h.name}</option>
+                    <option key={h.id} value={h.id}>{h.emoji ? `${h.emoji} ` : ''}{h.name}</option>
                   ))}
                 </select>
               </div>

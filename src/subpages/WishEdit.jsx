@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { useApp, showGlobalToast } from '../store/store'
-import EmojiPicker from '../components/EmojiPicker'
+import IconPicker from '../components/IconPicker'
+import Icon from '../components/Icon'
 import ConfirmModal from '../components/ConfirmModal'
+import { DEFAULT_WISH_ICON } from '../utils/constants'
 
 export default function WishEdit({ onClose }) {
   const { wishes, totalScore, addWish, updateWish, deleteWish, exchangeWish } = useApp()
@@ -10,17 +12,24 @@ export default function WishEdit({ onClose }) {
   const [name, setName] = useState('')
   const [cost, setCost] = useState('')
   const [emoji, setEmoji] = useState('🎁')
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [icon, setIcon] = useState(DEFAULT_WISH_ICON)
+  const [showIconPicker, setShowIconPicker] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
 
   const availableWishes = wishes.filter(w => !w.exchanged)
   const exchangedWishes = wishes.filter(w => w.exchanged)
+
+  const handleIconSelect = ({ type, value }) => {
+    if (type === 'icon') { setIcon(value); setEmoji('') }
+    else { setEmoji(value); setIcon(null) }
+  }
 
   const startEdit = (wish) => {
     setEditing(wish)
     setName(wish.name)
     setCost(String(wish.cost))
     setEmoji(wish.emoji || '🎁')
+    setIcon(wish.icon || DEFAULT_WISH_ICON)
   }
 
   const clearForm = () => {
@@ -28,6 +37,7 @@ export default function WishEdit({ onClose }) {
     setName('')
     setCost('')
     setEmoji('🎁')
+    setIcon(DEFAULT_WISH_ICON)
   }
 
   const handleSave = async () => {
@@ -35,10 +45,10 @@ export default function WishEdit({ onClose }) {
     if (!cost || parseInt(cost) <= 0) { showGlobalToast('请输入有效积分'); return }
 
     if (editing) {
-      await updateWish({ ...editing, name: name.trim(), cost: parseInt(cost), emoji })
+      await updateWish({ ...editing, name: name.trim(), cost: parseInt(cost), emoji, icon })
       showGlobalToast('愿望已更新')
     } else {
-      await addWish({ name: name.trim(), cost: parseInt(cost), emoji })
+      await addWish({ name: name.trim(), cost: parseInt(cost), emoji, icon })
       showGlobalToast('愿望创建成功')
     }
     clearForm()
@@ -71,7 +81,9 @@ export default function WishEdit({ onClose }) {
         {/* 表单 */}
         <div className="card" style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <div style={{ fontSize: 32, cursor: 'pointer' }} onClick={() => setShowEmojiPicker(true)}>{emoji}</div>
+            <div className="icon-preview" onClick={() => setShowIconPicker(true)} title="点击更换图标">
+              <Icon name={icon} emoji={emoji} size={28} />
+            </div>
             <input className="form-input" placeholder="愿望名称" value={name} onChange={e => setName(e.target.value)} maxLength={20} style={{ flex: 1 }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
@@ -106,7 +118,9 @@ export default function WishEdit({ onClose }) {
             ) : (
               availableWishes.map(wish => (
                 <div key={wish.id} className="list-item" onClick={() => startEdit(wish)}>
-                  <div className="item-icon" style={{ background: 'var(--primary-soft)' }}>{wish.emoji || '🎁'}</div>
+                  <div className="item-icon" style={{ background: 'var(--primary-soft)' }}>
+                    <Icon name={wish.icon} emoji={wish.emoji || '🎁'} size={24} />
+                  </div>
                   <div className="item-content">
                     <div className="item-title">{wish.name}</div>
                     <div className="item-sub">需要 {wish.cost} 积分</div>
@@ -137,7 +151,9 @@ export default function WishEdit({ onClose }) {
             ) : (
               exchangedWishes.map(wish => (
                 <div key={wish.id} className="list-item completed">
-                  <div className="item-icon" style={{ background: 'var(--success-soft)' }}>{wish.emoji || '🎁'}</div>
+                  <div className="item-icon" style={{ background: 'var(--success-soft)' }}>
+                    <Icon name={wish.icon} emoji={wish.emoji || '🎁'} size={24} />
+                  </div>
                   <div className="item-content">
                     <div className="item-title" style={{ textDecoration: 'line-through' }}>{wish.name}</div>
                     <div className="item-sub">已兑换</div>
@@ -149,7 +165,13 @@ export default function WishEdit({ onClose }) {
         )}
       </div>
 
-      {showEmojiPicker && <EmojiPicker onSelect={setEmoji} onClose={() => setShowEmojiPicker(false)} />}
+      {showIconPicker && (
+        <IconPicker
+          current={icon ? { type: 'icon', value: icon } : { type: 'emoji', value: emoji }}
+          onSelect={handleIconSelect}
+          onClose={() => setShowIconPicker(false)}
+        />
+      )}
       {showDeleteConfirm && (
         <ConfirmModal message="删除该愿望？" icon="⚠️"
           onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(null)} />
