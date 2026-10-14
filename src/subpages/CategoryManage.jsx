@@ -112,7 +112,6 @@ export default function CategoryManage({ onClose }) {
         {/* 分类列表 */}
         {filteredCats.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📁</div>
             <div className="empty-text">暂无分类，在上方添加吧</div>
           </div>
         ) : (
@@ -140,7 +139,7 @@ export default function CategoryManage({ onClose }) {
       {showDeleteConfirm && (
         <ConfirmModal
           message="删除后历史账单将保留，归类为「其他」，是否确认删除？"
-          icon="⚠️" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)}
+ onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
     </div>

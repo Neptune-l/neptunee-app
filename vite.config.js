@@ -13,8 +13,8 @@ export default defineConfig({
       includeAssets: ['icons/*.png'],
       manifest: {
         id: BASE,
-        name: 'Neptune 自律百宝箱',
-        short_name: '自律百宝箱',
+        name: 'Neptune',
+        short_name: 'Neptune',
         description: '习惯打卡、任务、专注计时、记账与数据统计，完全离线的个人自律工具。',
         lang: 'zh-CN',
         start_url: BASE,
@@ -28,6 +28,7 @@ export default defineConfig({
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {

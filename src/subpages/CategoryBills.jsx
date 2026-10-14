@@ -50,7 +50,6 @@ export default function CategoryBills({ categoryId, viewDate, onClose }) {
 
         {filteredBills.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📄</div>
             <div className="empty-text">暂无账单记录</div>
           </div>
         ) : (

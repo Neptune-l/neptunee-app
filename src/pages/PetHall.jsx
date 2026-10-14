@@ -30,7 +30,7 @@ export default function PetHall({ openSubpage }) {
     <>
       <div className="page-content">
         <div className="top-bar">
-          <div className="top-bar-left"><span style={{ fontSize: 17, fontWeight: 700 }}>🐾 收容大厅</span></div>
+          <div className="top-bar-left"><span style={{ fontSize: 17, fontWeight: 700 }}>收容大厅</span></div>
           <div className="top-bar-right pet-wallet">
             <img src={PET_ITEM_ICON.ration} alt="口粮" className="wallet-ico" />
             <span>{petRations}</span>
@@ -43,13 +43,12 @@ export default function PetHall({ openSubpage }) {
 
         <div className="tab-bar" style={{ marginBottom: 12 }}>
           <button className="tab-bar-item active">别养死了</button>
-          <button className="tab-bar-item" onClick={() => openSubpage(PetMarket)}>🖤 黑市</button>
-          <button className="tab-bar-item" onClick={() => openSubpage(PetMemorial)}>🕯️ 遗照合集</button>
+          <button className="tab-bar-item" onClick={() => openSubpage(PetMarket)}>黑市</button>
+          <button className="tab-bar-item" onClick={() => openSubpage(PetMemorial)}>遗照合集</button>
         </div>
 
         {activePets.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🐾</div>
             <div className="empty-text">还没有小可怜，领养一只开始坚持吧</div>
             <button className="btn btn-primary mt-8" onClick={() => openSubpage(PetNew)}>新建活命指标</button>
           </div>

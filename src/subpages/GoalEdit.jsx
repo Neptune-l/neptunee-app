@@ -63,7 +63,7 @@ export default function GoalEdit({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">🎯 中长期目标</span>
+        <span className="subpage-title">中长期目标</span>
       </div>
       <div className="subpage-body">
         {/* 表单 */}
@@ -98,7 +98,6 @@ export default function GoalEdit({ onClose }) {
 
         {filtered.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🎯</div>
             <div className="empty-text">还没有目标，在上方添加吧</div>
           </div>
         ) : (
@@ -125,7 +124,7 @@ export default function GoalEdit({ onClose }) {
       </div>
 
       {showDeleteConfirm && (
-        <ConfirmModal message="删除此目标？" icon="⚠️"
+        <ConfirmModal message="删除此目标？"
           onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(null)} />
       )}
 

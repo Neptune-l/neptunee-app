@@ -79,7 +79,7 @@ export default function PetHome({ petId, onClose }) {
                 view.todayTasks.map(t => (
                   <div key={t.id} className="list-item" style={{ cursor: 'pointer' }} onClick={async () => {
                     const r = await togglePetTask(pet.id, today, t.id)
-                    if (r?.graduate) showGlobalToast('🎓 已开智！再见了妈妈今晚我就要远航')
+                    if (r?.graduate) showGlobalToast('已开智！再见了妈妈今晚我就要远航')
                   }}>
                     <div className={'checkbox-round' + (t.done ? ' checked' : '')} />
                     <div className="item-content"><div className="item-title" style={{ textDecoration: t.done ? 'line-through' : 'none' }}>{t.text}</div></div>

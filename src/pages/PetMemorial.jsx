@@ -35,12 +35,11 @@ export default function PetMemorial({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">🕯️ 遗照合集</span>
+        <span className="subpage-title">遗照合集</span>
       </div>
       <div className="subpage-body">
         {graduated.length === 0 && memorialized.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🕯️</div>
             <div className="empty-text">这里还很空，希望永远不拥挤</div>
           </div>
         ) : (

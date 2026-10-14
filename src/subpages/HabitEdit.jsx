@@ -204,7 +204,7 @@ export default function HabitEdit({ habit, onClose }) {
         />
       )}
       {showDeleteConfirm && (
-        <ConfirmModal message="删除后该习惯及所有历史记录将无法恢复，是否确认？" icon="⚠️"
+        <ConfirmModal message="删除后该习惯及所有历史记录将无法恢复，是否确认？"
           onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} />
       )}
     </div>

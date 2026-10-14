@@ -116,7 +116,6 @@ export default function TaskEdit({ task, onClose }) {
       {showDeleteConfirm && (
         <ConfirmModal
           message="删除后该任务将无法恢复，是否确认？"
-          icon="⚠️"
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />

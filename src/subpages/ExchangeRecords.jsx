@@ -1,4 +1,5 @@
 import React from 'react'
+import Icon from '../components/Icon'
 import { useApp } from '../store/store'
 
 export default function ExchangeRecords({ onClose }) {
@@ -14,13 +15,12 @@ export default function ExchangeRecords({ onClose }) {
       <div className="subpage-body">
         {sorted.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📋</div>
             <div className="empty-text">暂无兑换记录</div>
           </div>
         ) : (
           sorted.map(record => (
             <div key={record.id} className="list-item">
-              <div className="item-icon" style={{ background: 'var(--primary-soft)' }}>🎁</div>
+              <div className="item-icon" style={{ background: 'var(--primary-soft)' }}><Icon name="gift" size={22} /></div>
               <div className="item-content">
                 <div className="item-title">{record.wishName}</div>
                 <div className="item-sub">{new Date(record.time).toLocaleDateString()}</div>

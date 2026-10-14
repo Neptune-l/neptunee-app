@@ -148,7 +148,6 @@ export default function Accounting({ openSubpage }) {
             {/* 账单列表：一组一张卡，发丝线分隔 */}
             {dayBills.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">💰</div>
                 <div className="empty-text">当日还没有账单，点击右下角记一笔吧</div>
               </div>
             ) : (
@@ -276,7 +275,6 @@ export default function Accounting({ openSubpage }) {
 
             {sortedGoals.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">🐷</div>
                 <div className="empty-text">
                   还没有存钱计划<br />给想买的东西建个罐子，一点点存起来吧
                 </div>
@@ -315,7 +313,7 @@ export default function Accounting({ openSubpage }) {
                         <div className="progress-fill" style={{ width: `${pct * 100}%` }} />
                       </div>
                       <div className="savings-card-foot">
-                        <span>{remaining > 0 ? `还差 ${fmtMoney(remaining)}` : '已达成目标 🎉'}</span>
+                        <span>{remaining > 0 ? `还差 ${fmtMoney(remaining)}` : '已达成目标'}</span>
                         <span>{savingsByGoal[goal.id]?.records.length || 0} 笔记录</span>
                       </div>
                     </div>

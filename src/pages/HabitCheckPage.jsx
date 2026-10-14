@@ -146,7 +146,6 @@ export default function HabitCheckPage({ openSubpage }) {
         )}
         {loadingStatuses ? <div className="loading">加载中...</div> : filteredHabits.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">{habitTab === 'positive' ? '💪' : '🛡️'}</div>
             <div className="empty-text">{habitTab === 'positive' ? '今天没有需要打卡的习惯' : '还没有克制习惯'}</div>
           </div>
         ) : (
@@ -169,7 +168,7 @@ export default function HabitCheckPage({ openSubpage }) {
                 <div className="item-right" style={{ gap: 4, display: 'flex', alignItems: 'center' }}>
                   {habit.type === 'positive'
                     ? <button type="button" className={'checkbox-round' + (isChecked ? ' checked' : '')} aria-label={`打卡：${habit.name}`} />
-                    : <div style={{ width: 28, height: 28, borderRadius: '50%', background: rc > 0 ? 'var(--danger)' : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'white' }}>{rc > 0 ? '×' + rc : '🛡️'}</div>}
+                    : <div style={{ width: 28, height: 28, borderRadius: '50%', background: rc > 0 ? 'var(--danger)' : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'white' }}>{rc > 0 ? '×' + rc : ''}</div>}
                   <button className="btn btn-sm btn-outline" style={{ padding: '2px 6px', fontSize: 11 }} onClick={(e) => { e.stopPropagation(); setEditingHabit(habit) }}>编辑</button>
                 </div>
               </div>

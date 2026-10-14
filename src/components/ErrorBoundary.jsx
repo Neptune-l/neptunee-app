@@ -54,7 +54,6 @@ export default class ErrorBoundary extends React.Component {
     return (
       <div style={{ padding: 24, maxWidth: 420, margin: '0 auto', minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>🥲</div>
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>这里出了点问题</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             {this.props.label ? `「${this.props.label}」` : '页面'}渲染失败。你的数据仍安全地存在本地，先导出一份备份再重试更稳妥。

@@ -25,7 +25,7 @@ export default function DietRecordList({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">🍽️ 饮食记录</span>
+        <span className="subpage-title">饮食记录</span>
         <button className="btn btn-primary btn-sm" onClick={() => setEditing({ date: viewDate })}>新增</button>
       </div>
       <div className="subpage-body">
@@ -62,7 +62,6 @@ export default function DietRecordList({ onClose }) {
 
         {dayRecords.length === 0 && (
           <div className="empty-state">
-            <div className="empty-icon">🍽️</div>
             <div className="empty-text">还没有饮食记录，点击右上角新增吧</div>
           </div>
         )}

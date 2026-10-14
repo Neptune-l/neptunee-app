@@ -45,7 +45,7 @@ function ScenarioPicker({ scenarios, onEnter, onDelete, onCreate }) {
       <div className="settings-group">
         <div className="settings-group-title">已有场景</div>
         {scenarios.length === 0 ? (
-          <div className="empty-state"><div className="empty-icon">🎲</div><div className="empty-text">还没有场景，创建一个吧</div></div>
+          <div className="empty-state"><div className="empty-text">还没有场景，创建一个吧</div></div>
         ) : (
           scenarios.map(scene => (
             <div key={scene.id} className="settings-item" onClick={() => onEnter(scene.id)}>
@@ -58,7 +58,7 @@ function ScenarioPicker({ scenarios, onEnter, onDelete, onCreate }) {
           ))
         )}
       </div>
-      {confirmDel && <ConfirmModal message="删除此场景？" icon="⚠️" onConfirm={() => { const u = scenarios.filter(s => s.id !== confirmDel); saveScenarios(u); onDelete(u); setConfirmDel(null) }} onCancel={() => setConfirmDel(null)} />}
+      {confirmDel && <ConfirmModal message="删除此场景？" onConfirm={() => { const u = scenarios.filter(s => s.id !== confirmDel); saveScenarios(u); onDelete(u); setConfirmDel(null) }} onCancel={() => setConfirmDel(null)} />}
     </div>
   )
 }
@@ -148,18 +148,18 @@ function ScenarioEditor({ scenario, onBack, onUpdate }) {
           const valid = options.filter(o => o.trim())
           if (valid.length === 0) { showGlobalToast('请先输入选项'); return }
           setResult(valid[Math.floor(Math.random() * valid.length)])
-        }}>🎲 随机抽取</button>
+        }}>随机抽取</button>
       ) : (
         <div style={{ textAlign: 'center' }}>
           <div style={{ position: 'relative', width: 280, height: 280, margin: '0 auto' }}>
             <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', fontSize: 24, zIndex: 5 }}>▼</div>
             <canvas ref={canvasRef} style={{ width: 280, height: 280 }} />
           </div>
-          <button className="btn btn-primary btn-block mt-8" onClick={handleSpin} disabled={isSpinning}>{isSpinning ? '转动中...' : '🎰 旋转'}</button>
+          <button className="btn btn-primary btn-block mt-8" onClick={handleSpin} disabled={isSpinning}>{isSpinning ? '转动中...' : '旋转'}</button>
         </div>
       )}
 
-      {result && <div className="wheel-result" style={{ fontSize: 22, marginTop: 8 }}>🎉 {result}</div>}
+      {result && <div className="wheel-result" style={{ fontSize: 22, marginTop: 8 }}>{result}</div>}
     </div>
   )
 }
@@ -173,7 +173,7 @@ export default function RandomPicker({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">🎲 随机选择器</span>
+        <span className="subpage-title">随机选择器</span>
       </div>
       <div className="subpage-body">
         {current ? (

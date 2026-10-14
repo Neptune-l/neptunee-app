@@ -10,7 +10,7 @@ export default function AchievementWall({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">🏆 成就徽章</span>
+        <span className="subpage-title">成就徽章</span>
       </div>
       <div className="subpage-body">
         <div className="achievement-grid">
@@ -20,7 +20,7 @@ export default function AchievementWall({ onClose }) {
               <div key={ach.id} className={`achievement-item${!unlocked ? ' locked' : ''}`}>
                 <div className="ach-emoji">{ach.emoji}</div>
                 <div className="ach-name">{ach.name}</div>
-                <div className="ach-condition">{unlocked ? '已解锁 ✨' : ach.condition}</div>
+                <div className="ach-condition">{unlocked ? '已解锁' : ach.condition}</div>
               </div>
             )
           })}

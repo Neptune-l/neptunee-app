@@ -109,9 +109,9 @@ export default function FocusTimer() {
           setIsRunning(false); setIsPaused(false); setIsComplete(false)
           if (doneTask.linkedHabitId) {
             const r = await checkHabit(doneTask.linkedHabitId, today)
-            showGlobalToast(r && !r.already ? '专注完成！习惯自动打卡 +' + r.delta + '分' : '🎉 番茄钟完成，任务已达标！')
+            showGlobalToast(r && !r.already ? '专注完成！习惯自动打卡 +' + r.delta + '分' : '番茄钟完成，任务已达标！')
           } else {
-            showGlobalToast('🎉 番茄钟完成，任务已达标！')
+            showGlobalToast('番茄钟完成，任务已达标！')
           }
           return
         }
@@ -120,14 +120,14 @@ export default function FocusTimer() {
       }
       const newCycle = cycleRef.current + 1
       if (newCycle >= 4) {
-        showGlobalToast('🎉 已完成4个番茄！休息15分钟吧')
+        showGlobalToast('已完成4个番茄！休息15分钟吧')
         startPhase('longBreak', 0, 0)
       } else {
-        showGlobalToast('🍅 番茄完成！休息5分钟')
+        showGlobalToast('番茄完成！休息5分钟')
         startPhase('shortBreak', newCycle, 0)
       }
     } else {
-      showGlobalToast('💪 休息结束，开始新的番茄！')
+      showGlobalToast('休息结束，开始新的番茄！')
       startPhase('work', cycleRef.current, 0)
     }
   }
@@ -274,8 +274,8 @@ export default function FocusTimer() {
     <div className="page-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12 }}>
       {/* 模式切换 */}
       <div className="pomodoro-selector">
-        <button className={'pomo-option' + (timerMode === 'regular' ? ' active' : '')} onClick={() => { if (!isRunning) { setTimerMode('regular'); setElapsed(0); elapsedRef.current = 0; setIsComplete(false) } }}>⏱ 普通计时</button>
-        <button className={'pomo-option' + (timerMode === 'pomodoro' ? ' active' : '')} onClick={() => { if (!isRunning) { setTimerMode('pomodoro'); setElapsed(0); elapsedRef.current = 0; setPomoPhase('work'); setPomoCycle(0); setIsComplete(false) } }}>🍅 番茄钟</button>
+        <button className={'pomo-option' + (timerMode === 'regular' ? ' active' : '')} onClick={() => { if (!isRunning) { setTimerMode('regular'); setElapsed(0); elapsedRef.current = 0; setIsComplete(false) } }}>普通计时</button>
+        <button className={'pomo-option' + (timerMode === 'pomodoro' ? ' active' : '')} onClick={() => { if (!isRunning) { setTimerMode('pomodoro'); setElapsed(0); elapsedRef.current = 0; setPomoPhase('work'); setPomoCycle(0); setIsComplete(false) } }}>番茄钟</button>
       </div>
       {timerMode === 'pomodoro' && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
@@ -293,8 +293,8 @@ export default function FocusTimer() {
             strokeWidth="12" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} transform="rotate(-90 140 140)" style={{ transition: 'stroke-dashoffset 0.3s ease' }} />}
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          {!selectedTask ? (<><div style={{ fontSize: 36, marginBottom: 8 }}>⏱️</div><div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>选择任务开始专注</div></>)
-          : isComplete ? (<><div style={{ fontSize: 36, marginBottom: 4 }}>🎉</div><div style={{ fontSize: 18, fontWeight: 700 }}>完成</div><div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{formatTime(elapsed)}</div></>)
+          {!selectedTask ? (<><div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>选择任务开始专注</div></>)
+          : isComplete ? (<><div style={{ fontSize: 18, fontWeight: 700 }}>完成</div><div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{formatTime(elapsed)}</div></>)
           : (<><div style={{ fontSize: 28, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatTime(elapsed)}<span style={{ fontSize: 16, color: 'var(--text-secondary)', fontWeight: 400 }}> / {formatTime(targetSeconds)}</span></div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{selectedTask.name}</div></>)}
         </div>
@@ -346,7 +346,7 @@ export default function FocusTimer() {
           </div>
         </div>
       )}
-      {showQuitConfirm && <ConfirmModal message="放弃将清空本次计时" icon="⏹️" onConfirm={confirmQuit} onCancel={() => setShowQuitConfirm(false)} />}
+      {showQuitConfirm && <ConfirmModal message="放弃将清空本次计时" onConfirm={confirmQuit} onCancel={() => setShowQuitConfirm(false)} />}
     </div>
   )
 }

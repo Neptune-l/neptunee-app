@@ -63,7 +63,6 @@ export default function SavingsDetail({ goalId, onClose }) {
         </div>
         <div className="subpage-body">
           <div className="empty-state">
-            <div className="empty-icon">🐷</div>
             <div className="empty-text">该计划已不存在</div>
           </div>
         </div>
@@ -147,13 +146,13 @@ export default function SavingsDetail({ goalId, onClose }) {
             <div className="savings-hero-saved">{fmtMoney(view.saved)}</div>
             <div className="savings-hero-target">目标 {fmtMoney(view.target)}</div>
             <div className="savings-hero-remain">
-              {view.remaining > 0 ? `还差 ${fmtMoney(view.remaining)}` : '🎉 已达成目标'}
+              {view.remaining > 0 ? `还差 ${fmtMoney(view.remaining)}` : '已达成目标'}
             </div>
             {goal.status === 'done' && <div className="savings-done-tag">已完成</div>}
           </div>
         </div>
 
-        {goal.note && <div className="assets-hint" style={{ padding: '0 4px 12px' }}>📝 {goal.note}</div>}
+        {goal.note && <div className="assets-hint" style={{ padding: '0 4px 12px' }}>{goal.note}</div>}
 
         {/* 数据面板 */}
         <div className="savings-stats">
@@ -247,7 +246,7 @@ export default function SavingsDetail({ goalId, onClose }) {
           bucket.records.map(rec => (
             <div key={rec.id} className="list-item">
               <div className="item-icon" style={{ background: rec.type === 'in' ? 'var(--success-soft)' : 'var(--danger-soft)' }}>
-                {rec.type === 'in' ? '⬇️' : '⬆️'}
+                {rec.type === 'in' ? '↓' : '↑'}
               </div>
               <div className="item-content">
                 <div className="item-title">{rec.type === 'in' ? '存入' : '取出'}{rec.remark ? ` · ${rec.remark}` : ''}</div>
@@ -271,7 +270,7 @@ export default function SavingsDetail({ goalId, onClose }) {
         <div style={{ marginTop: 20 }}>
           <button className="btn btn-outline btn-block" onClick={async () => {
             const next = await toggleSavingsDone(goal)
-            showGlobalToast(next.status === 'done' ? '已标记完成 🎉' : '已重新开启')
+            showGlobalToast(next.status === 'done' ? '已标记完成' : '已重新开启')
           }}>
             {goal.status === 'done' ? '继续存' : '标记完成'}
           </button>
@@ -290,7 +289,6 @@ export default function SavingsDetail({ goalId, onClose }) {
       {pending && (
         <ConfirmModal
           message={pending.label}
-          icon="⚠️"
           onConfirm={() => { const t = pending.type; setPending(null); doSaveMoney(t) }}
           onCancel={() => setPending(null)}
         />
@@ -299,7 +297,6 @@ export default function SavingsDetail({ goalId, onClose }) {
       {showDelete && (
         <ConfirmModal
           message={`删除「${goal.name}」及其全部流水记录？此操作不可恢复。`}
-          icon="⚠️"
           onConfirm={handleDeleteGoal}
           onCancel={() => setShowDelete(false)}
         />

@@ -11,7 +11,7 @@ export default function PetMarket({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">🖤 黑市</span>
+        <span className="subpage-title">黑市</span>
         <div className="pet-wallet" style={{ fontSize: 14 }}>
           <img src={PET_ITEM_ICON.ration} alt="口粮" className="wallet-ico" />
           <span>{petRations}</span>

@@ -170,7 +170,6 @@ export default function SavingsEdit({ goal, onClose }) {
           <div className="settings-item" style={{ padding: 0, boxShadow: 'none', margin: 0, background: 'transparent' }}
             onClick={() => setHasDeadline(v => !v)}>
             <div className="settings-left">
-              <span className="settings-icon">📅</span>
               <span className="settings-label">设置截止日期</span>
             </div>
             <div className={`toggle-switch${hasDeadline ? ' on' : ''}`} />

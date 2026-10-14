@@ -86,7 +86,7 @@ export default function DietEdit({ record, defaultDate, onClose }) {
       </div>
 
       {showDeleteConfirm && (
-        <ConfirmModal message="删除此记录？" icon="⚠️"
+        <ConfirmModal message="删除此记录？"
           onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} />
       )}
     </div>

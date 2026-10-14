@@ -56,7 +56,7 @@ export default function Settings({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">⚙️ 设置</span>
+        <span className="subpage-title">设置</span>
       </div>
       <div className="subpage-body">
         {/* 主题切换 */}
@@ -66,26 +66,24 @@ export default function Settings({ onClose }) {
             <label className="form-label">主题模式</label>
             <div className="theme-selector" style={{ marginTop: 8 }}>
               <button className={`theme-option${theme === 'light' ? ' active' : ''}`} onClick={() => setTheme('light')}>
-                ☀️ 浅色
+                浅色
               </button>
               <button className={`theme-option${theme === 'dark' ? ' active' : ''}`} onClick={() => setTheme('dark')}>
-                🌙 深色
+                深色
               </button>
               <button className={`theme-option${theme === 'system' ? ' active' : ''}`} onClick={() => setTheme('system')}>
-                💻 跟随系统
+                跟随系统
               </button>
             </div>
           </div>
           <div className="settings-item" onClick={() => setGreetingEnabled(!greetingEnabled)}>
             <div className="settings-left">
-              <span className="settings-icon">💬</span>
               <span className="settings-label">显示欢迎语</span>
             </div>
             <div className={`toggle-switch${greetingEnabled ? ' on' : ''}`} />
           </div>
           <div className="settings-item" onClick={() => togglePetWidget()}>
             <div className="settings-left">
-              <span className="settings-icon">🐾</span>
               <span className="settings-label">首页置顶小可怜</span>
             </div>
             <div className={`toggle-switch${petWidgetEnabled ? ' on' : ''}`} />
@@ -111,21 +109,18 @@ export default function Settings({ onClose }) {
           <div className="settings-group-title">数据管理</div>
           <div className="settings-item" onClick={handleExport}>
             <div className="settings-left">
-              <span className="settings-icon">📤</span>
               <span className="settings-label">导出数据</span>
             </div>
             <span className="settings-arrow">›</span>
           </div>
           <div className="settings-item" onClick={() => setShowImportConfirm(true)}>
             <div className="settings-left">
-              <span className="settings-icon">📥</span>
               <span className="settings-label">导入数据</span>
             </div>
             <span className="settings-arrow">›</span>
           </div>
           <div className="settings-item" style={{ color: 'var(--danger)' }} onClick={() => setShowClearConfirm(true)}>
             <div className="settings-left">
-              <span className="settings-icon">🗑️</span>
               <span className="settings-label">清空所有数据</span>
             </div>
             <span className="settings-arrow">›</span>
@@ -137,7 +132,7 @@ export default function Settings({ onClose }) {
           <div className="settings-group-title">关于</div>
           <div className="card" style={{ padding: '12px 16px' }}>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              Neptune 自律百宝箱 v1.0.0<br />
+              Neptune v1.0.0<br />
               所有数据仅存储在你的浏览器本地，完全离线可用。<br />
               请定期导出备份以防数据丢失。
             </div>
@@ -148,7 +143,6 @@ export default function Settings({ onClose }) {
       {showImportConfirm && (
         <ConfirmModal
           message="导入将覆盖当前所有数据，请先导出备份当前数据。是否继续？"
-          icon="⚠️"
           onConfirm={async () => {
             setShowImportConfirm(false)
             document.getElementById('import-file-input')?.click()
@@ -169,7 +163,6 @@ export default function Settings({ onClose }) {
       {showClearConfirm && (
         <ConfirmModal
           message="此操作将清空所有数据且无法恢复，建议先导出备份。是否确认？"
-          icon="⚠️"
           onConfirm={handleClear}
           onCancel={() => setShowClearConfirm(false)}
         />

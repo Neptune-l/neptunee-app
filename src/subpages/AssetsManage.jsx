@@ -44,7 +44,7 @@ export default function AssetsManage({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">💰 资产管理</span>
+        <span className="subpage-title">资产管理</span>
         <button className="btn btn-primary btn-sm" onClick={handleSave}>保存</button>
       </div>
 
@@ -126,7 +126,6 @@ export default function AssetsManage({ onClose }) {
       {showResetConfirm && (
         <ConfirmModal
           message="将清空总资产设置，余额会重新按「收入 − 支出」计算。已记录的账单不受影响，是否继续？"
-          icon="⚠️"
           onConfirm={handleReset}
           onCancel={() => setShowResetConfirm(false)}
         />

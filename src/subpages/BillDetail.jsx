@@ -116,7 +116,7 @@ export default function BillDetail({ bill, onClose }) {
       </div>
 
       {showDeleteConfirm && (
-        <ConfirmModal message="删除后该账单将无法恢复，是否确认？" icon="⚠️"
+        <ConfirmModal message="删除后该账单将无法恢复，是否确认？"
           onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} />
       )}
     </>

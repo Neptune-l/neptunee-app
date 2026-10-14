@@ -110,7 +110,7 @@ export default function HomePage({ openSubpage }) {
       if (!r) { showGlobalToast('未找到该习惯'); return }
       if (r.already) { showGlobalToast('今日已经打过卡啦'); return }
       setStatusVersion(v => v + 1)
-      setCelebration({ icon: '🎉', text: '打卡成功！+' + r.delta + '分' })
+      setCelebration({ text: '打卡成功！+' + r.delta + '分' })
       setTimeout(() => setCelebration(null), 1500)
     } catch (e) { console.error('Check failed:', e); showGlobalToast('出错: ' + e.message) }
   }
@@ -137,7 +137,7 @@ export default function HomePage({ openSubpage }) {
 
   return (
     <>
-      {celebration && <div className="celebration"><span className="celeb-icon">{celebration.icon}</span><span className="celeb-txt">{celebration.text}</span></div>}
+      {celebration && <div className="celebration"><span className="celeb-txt">{celebration.text}</span></div>}
       <div
         className="page-content home-dense"
         onTouchStart={handleTouchStart}
@@ -216,7 +216,7 @@ export default function HomePage({ openSubpage }) {
             </div>
           </div>
           {dayTasks.length === 0 ? (
-            <div className="empty-state"><div className="empty-icon">✨</div><div className="empty-text">今日没有待办任务，好好休息吧</div></div>
+            <div className="empty-state"><div className="empty-text">今日没有待办任务，好好休息吧</div></div>
           ) : (
             <div className="card-list">
               {pendingTasks.map(task => (
@@ -240,7 +240,7 @@ export default function HomePage({ openSubpage }) {
             <span className="section-title">今日打卡</span>
             <div className="section-actions">
               {todayHabits.length > 0 && (allDone
-                ? <span className="section-progress" style={{ color: 'var(--success)' }}>全部完成 🎉</span>
+                ? <span className="section-progress" style={{ color: 'var(--success)' }}>全部完成</span>
                 : <span className="section-progress"><b>{checkedCount}</b>/{todayHabits.length}</span>)}
               {todayHabits.length > 3 && (
                 <button className="link-btn" onClick={() => setHideDone(v => !v)}>{hideDone ? '显示全部' : '只看未完成'}</button>
@@ -248,9 +248,9 @@ export default function HomePage({ openSubpage }) {
             </div>
           </div>
           {todayHabits.length === 0 ? (
-            <div className="empty-state"><div className="empty-icon">✅</div><div className="empty-text">今天没有需要打卡的习惯</div></div>
+            <div className="empty-state"><div className="empty-text">今天没有需要打卡的习惯</div></div>
           ) : visibleHabits.length === 0 ? (
-            <div className="empty-state"><div className="empty-icon">🎉</div><div className="empty-text">今天的习惯全部打卡完成！</div></div>
+            <div className="empty-state"><div className="empty-text">今天的习惯全部打卡完成！</div></div>
           ) : habitLayout === 'list' ? (
             <div className="card-list">
               {visibleHabits.map((habit, i) => {

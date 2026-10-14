@@ -94,8 +94,7 @@ export default function TaskCenter({ openSubpage }) {
           <>
             {pendingTasks.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">✨</div>
-                <div className="empty-text">今日没有待办任务，好好休息吧✨</div>
+                <div className="empty-text">今日没有待办任务，好好休息吧</div>
               </div>
             ) : (
               pendingTasks.map(task => (
@@ -122,7 +121,6 @@ export default function TaskCenter({ openSubpage }) {
           <>
             {completedTasks.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">🎉</div>
                 <div className="empty-text">还没有完成的任务</div>
               </div>
             ) : (

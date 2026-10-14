@@ -75,7 +75,7 @@ export default function WishEdit({ onClose }) {
     <div className="subpage">
       <div className="subpage-header">
         <button className="back-btn" onClick={onClose}>‹</button>
-        <span className="subpage-title">🎁 愿望兑换</span>
+        <span className="subpage-title">愿望兑换</span>
       </div>
       <div className="subpage-body">
         {/* 表单 */}
@@ -112,7 +112,6 @@ export default function WishEdit({ onClose }) {
           <>
             {availableWishes.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">🎁</div>
                 <div className="empty-text">还没有愿望，在上方添加吧</div>
               </div>
             ) : (
@@ -145,7 +144,6 @@ export default function WishEdit({ onClose }) {
           <>
             {exchangedWishes.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">🎉</div>
                 <div className="empty-text">还没有兑换过的愿望</div>
               </div>
             ) : (
@@ -173,7 +171,7 @@ export default function WishEdit({ onClose }) {
         />
       )}
       {showDeleteConfirm && (
-        <ConfirmModal message="删除该愿望？" icon="⚠️"
+        <ConfirmModal message="删除该愿望？"
           onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(null)} />
       )}
     </div>
