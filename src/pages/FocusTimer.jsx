@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useApp, showGlobalToast, navigateToTab } from '../store/store'
 import { getToday } from '../utils/date'
 import ConfirmModal from '../components/ConfirmModal'
+import { useBackLayer } from '../hooks/useBackLayer'
 
 const SESSION_KEY = 'focusTimerState'
 
@@ -14,6 +15,8 @@ export default function FocusTimer() {
   const [elapsed, setElapsed] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
   const [showTaskPicker, setShowTaskPicker] = useState(false)
+  // 任务选择弹窗也压一层：返回键先关它，而不是退出应用
+  const requestCloseTaskPicker = useBackLayer(showTaskPicker, () => setShowTaskPicker(false))
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)
   const [timerMode, setTimerMode] = useState('regular')
   const [pomoPhase, setPomoPhase] = useState('work')
@@ -328,7 +331,7 @@ export default function FocusTimer() {
       </p>
       {/* 任务选择弹窗 */}
       {showTaskPicker && (
-        <div className="modal-overlay" onClick={() => setShowTaskPicker(false)}>
+        <div className="modal-overlay" onClick={requestCloseTaskPicker}>
           <div className="modal-content" style={{ padding: 16, maxWidth: 340 }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>选择要专注的任务</div>
             {todayTasksWithTimer.length === 0 ? <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 20 }}>今日没有待完成且设置计时的任务</div>

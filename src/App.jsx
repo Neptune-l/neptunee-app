@@ -11,6 +11,7 @@ import Statistics from './pages/Statistics'
 import Profile from './pages/Profile'
 import PetHall from './pages/PetHall'
 import { setGlobalNavigateTab } from './store/store'
+import { initNav, pushLayer, back } from './utils/navStack'
 
 /**
  * 底部导航图标：统一 24×24 线性图标（stroke 由 CSS 控制，
@@ -103,19 +104,33 @@ export default function App() {
     window.scrollTo(0, pos.win || 0)
   }
 
+  // 初始化浏览器历史层栈（把当前条目标成 base，清掉刷新残留的旧层）
+  useEffect(() => { initNav() }, [])
+
+  /**
+   * 打开二级页 —— 同时压入一层历史，这样手机返回键会先退回本页而不是退出应用。
+   * 回退时用 setSubpage(null)（二级页打开前 subpage 必为 null）。
+   */
   const openSubpage = useCallback((Component, props = {}) => {
     scrollPos.current[activeTab] = readScroll()
     setSubpage({ Component, props })
+    pushLayer(() => setSubpage(null))
   }, [activeTab])
 
-  const closeSubpage = useCallback(() => setSubpage(null), [])
+  /** 关闭二级页 —— 优先走浏览器历史（popstate 会驱动 setSubpage(null)），保证两侧对称 */
+  const closeSubpage = useCallback(() => {
+    if (!back()) setSubpage(null)
+  }, [])
 
   const switchTo = useCallback((key) => {
     if (key === activeTab) return
+    const prev = activeTab
     scrollPos.current[activeTab] = readScroll()
     setSubpage(null)
     setActiveTab(key)
     restoreScroll(scrollPos.current[key])
+    // 切 tab 也压一层：返回键会切回上一个 tab（二级页全屏遮住 tab，此刻必为 null）
+    pushLayer(() => setActiveTab(prev))
   }, [activeTab])
 
   const goTab = useCallback((key) => {

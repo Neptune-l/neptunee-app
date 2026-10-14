@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { EMOJI_CATEGORIES } from '../utils/constants'
 import { ICON_GROUPS } from '../utils/icons'
+import { useBackLayer } from '../hooks/useBackLayer'
 import Icon from './Icon'
 
 /**
@@ -18,11 +19,14 @@ export default function IconPicker({ current, onSelect, onClose }) {
   const [groupIndex, setGroupIndex] = useState(0)
   const [emojiIndex, setEmojiIndex] = useState(0)
 
-  const pick = (type, value) => { onSelect({ type, value }); onClose() }
+  // 接入浏览器历史：返回键 = 关掉选择器，而不是退出应用
+  const requestClose = useBackLayer(true, onClose)
+
+  const pick = (type, value) => { onSelect({ type, value }); requestClose() }
   const isPicked = (type, value) => current?.type === type && current?.value === value
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={requestClose}>
       <div className="modal-content emoji-picker" onClick={e => e.stopPropagation()}>
         <div className="picker-modes">
           <button type="button" className={`picker-mode${mode === 'icon' ? ' active' : ''}`} onClick={() => setMode('icon')}>图标</button>

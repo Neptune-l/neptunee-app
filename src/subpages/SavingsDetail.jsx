@@ -5,6 +5,7 @@ import { getToday, getFriendlyDate } from '../utils/date'
 import ConfirmModal from '../components/ConfirmModal'
 import Icon from '../components/Icon'
 import SavingsEdit from './SavingsEdit'
+import { useBackLayer } from '../hooks/useBackLayer'
 
 /** 存钱计划详情：进度、存入/取出、流水 */
 export default function SavingsDetail({ goalId, onClose }) {
@@ -21,6 +22,8 @@ export default function SavingsDetail({ goalId, onClose }) {
   const [date, setDate] = useState(today)
   const [remark, setRemark] = useState('')
   const [showEdit, setShowEdit] = useState(false)
+  // 二级页里再开的编辑页也压一层：返回键先关它，再退本页
+  useBackLayer(showEdit, () => setShowEdit(false))
   const [pending, setPending] = useState(null)   // 超出余额时的待确认操作
   const [showDelete, setShowDelete] = useState(false)
 

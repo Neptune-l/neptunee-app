@@ -10,6 +10,7 @@ import AssetsManage from '../subpages/AssetsManage'
 import { PET_SPECIES, PET_STATE_META } from '../utils/petConstants'
 import { computePetView } from '../utils/petLogic'
 import { macaronKeyOf } from '../utils/palette'
+import { useBackLayer } from '../hooks/useBackLayer'
 
 /** 在 YYYY-MM-DD 上加减天数（本地时区，避免 UTC 偏移） */
 function shiftDay(dateStr, delta) {
@@ -23,6 +24,8 @@ export default function HomePage({ openSubpage }) {
   const [showCalendar, setShowCalendar] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null)
   const [editingTask, setEditingTask] = useState(null)
+  // 内联渲染的任务编辑页也压一层：返回键先关它，而不是退出应用
+  useBackLayer(!!editingTask, () => setEditingTask(null))
   const [habitStatuses, setHabitStatuses] = useState({})
   const [statusVersion, setStatusVersion] = useState(0)
   const [celebration, setCelebration] = useState(null)

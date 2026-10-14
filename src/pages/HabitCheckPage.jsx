@@ -7,6 +7,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import Icon from '../components/Icon'
 import HabitEdit from '../subpages/HabitEdit'
 import { macaronKeyOf } from '../utils/palette'
+import { useBackLayer } from '../hooks/useBackLayer'
 
 export default function HabitCheckPage({ openSubpage }) {
   const { loaded, habits, totalScore, viewDate, setViewDate, checkHabit, uncheckHabit, getHabitStatus } = useApp()
@@ -17,6 +18,8 @@ export default function HabitCheckPage({ openSubpage }) {
   const [confirmAction, setConfirmAction] = useState(null)
   const [statusVersion, setStatusVersion] = useState(0)
   const [editingHabit, setEditingHabit] = useState(null)
+  // 内联渲染的习惯编辑页也压一层：返回键先关它，而不是退出应用
+  useBackLayer(!!editingHabit, () => setEditingHabit(null))
   const longPressTimer = useRef(null)
   const longPressed = useRef(false)
   const [restraintStats, setRestraintStats] = useState({ thisMonth: 0, lastMonth: 0 })

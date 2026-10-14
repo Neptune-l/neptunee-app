@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { setGlobalAchievement } from '../store/store'
+import { useBackLayer } from '../hooks/useBackLayer'
 
 export default function AchievementModal() {
   const [achievement, setAchievement] = useState(null)
@@ -18,6 +19,9 @@ export default function AchievementModal() {
       setLeaving(false)
     }, 120)
   }
+
+  // 成就弹窗弹出时也压一层：返回键先关它，而不是把整页退掉
+  useBackLayer(!!achievement, handleClose)
 
   if (!achievement) return null
 

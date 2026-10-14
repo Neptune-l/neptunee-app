@@ -1,8 +1,12 @@
 import React, { useState } from 'react'
+import { useBackLayer } from '../hooks/useBackLayer'
 
 export default function CalendarModal({ currentDate, onSelect, onClose }) {
   const [year, setYear] = useState(currentDate ? parseInt(currentDate.split('-')[0]) : new Date().getFullYear())
   const [month, setMonth] = useState(currentDate ? parseInt(currentDate.split('-')[1]) - 1 : new Date().getMonth())
+
+  // 接入浏览器历史：返回键关掉日历，而不是退出应用
+  const requestClose = useBackLayer(true, onClose)
 
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
@@ -53,7 +57,7 @@ export default function CalendarModal({ currentDate, onSelect, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={requestClose}>
       <div className="modal-content calendar-modal" onClick={e => e.stopPropagation()}>
         <div className="calendar-header">
           <button className="calendar-nav-btn" onClick={prevMonth}>‹</button>
